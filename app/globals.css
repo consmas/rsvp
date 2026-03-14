@@ -1,26 +1,229 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* ── Magenta palette ── */
+  --color-magenta:        #9C0052;
+  --color-magenta-medium: #C20068;
+  --color-magenta-bright: #E91E8C;
+  --color-magenta-pale:   #FDE8F4;
+
+  /* ── Gold palette ── */
+  --color-gold:           #C8960C;
+  --color-gold-medium:    #E0B030;
+  --color-gold-bright:    #F5CE50;
+  --color-gold-pale:      #FFF8E0;
+
+  /* ── Neutrals ── */
+  --color-cream:          #FEF0F6;
+  --color-warm-white:     #FFF5FA;
+  --color-charcoal:       #1E0C16;
+  --color-silver:         #9A8896;
+  --color-hot-pink:       #E91E8C;
+
+  /* ── Fonts ── */
+  --font-playfair: var(--font-playfair-var), "Playfair Display", Georgia, serif;
+  --font-body:     var(--font-source-serif-var), "Source Serif 4", Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-warm-white);
+  color: var(--color-charcoal);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Wedding background ───────────────────────────────── */
+.kente-bg {
+  background-color: #FFF5FA;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% 10%, rgba(233, 30, 140, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 70% at 90% 90%, rgba(200, 150, 12, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(156, 0, 82, 0.04) 0%, transparent 60%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 16px,
+      rgba(233, 30, 140, 0.022) 16px,
+      rgba(233, 30, 140, 0.022) 32px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 16px,
+      rgba(200, 150, 12, 0.018) 16px,
+      rgba(200, 150, 12, 0.018) 32px
+    );
+}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bobble {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-16px) rotate(4deg); }
+  66%       { transform: translateY(-8px) rotate(-3deg); }
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.6; }
+  50%       { transform: scale(1.4) rotate(20deg); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400% center; }
+  100% { background-position:  400% center; }
+}
+
+@keyframes shineSwipe {
+  0%   { left: -75%; }
+  100% { left: 125%; }
+}
+
+@keyframes gradientPulse {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
+}
+
+/* ── Utility classes ──────────────────────────────────── */
+.animate-fade-up  { animation: fadeUp 0.4s ease-out both; }
+.animate-bobble   { animation: bobble 5s ease-in-out infinite; }
+.animate-sparkle  { animation: sparkle 2.5s ease-in-out infinite; }
+
+/* Shimmer date text */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #C8960C  0%,
+    #F5CE50 25%,
+    #E91E8C 50%,
+    #F5CE50 75%,
+    #C8960C 100%
+  );
+  background-size: 400% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 5s linear infinite;
+}
+
+/* ── Gradient animated heading ────────────────────────── */
+.gradient-heading {
+  background: linear-gradient(135deg, #9C0052 0%, #C20068 40%, #E91E8C 70%, #C8960C 100%);
+  background-size: 200% 200%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientPulse 6s ease infinite;
+}
+
+/* ── Interactive cards ────────────────────────────────── */
+.card-interactive {
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 8px 24px rgba(156, 0, 82, 0.13);
+}
+
+.card-selected {
+  box-shadow:
+    0 0 0 3px rgba(200, 150, 12, 0.35),
+    0 6px 20px rgba(156, 0, 82, 0.15) !important;
+}
+
+/* ── Primary gradient button ──────────────────────────── */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #9C0052 0%, #C20068 50%, #E91E8C 100%);
+  background-size: 200% 200%;
+  transition: background-position 0.4s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(156, 0, 82, 0.35);
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.18);
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+
+.btn-primary:hover::after {
+  left: 125%;
+}
+
+.btn-primary:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(156, 0, 82, 0.45);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ── Input fields ─────────────────────────────────────── */
+.input-field {
+  width: 100%;
+  border: 2px solid #F0D0E8;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 18px;
+  color: #1E0C16;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: var(--font-body);
+}
+
+.input-field::placeholder { color: #C4A8BC; }
+
+.input-field:focus {
+  border-color: #C20068;
+  box-shadow: 0 0 0 4px rgba(194, 0, 104, 0.10);
+}
+
+.textarea-field {
+  width: 100%;
+  border: 2px solid #F0D0E8;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 18px;
+  color: #1E0C16;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 120px;
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.textarea-field::placeholder { color: #C4A8BC; }
+
+.textarea-field:focus {
+  border-color: #C20068;
+  box-shadow: 0 0 0 4px rgba(194, 0, 104, 0.10);
 }
