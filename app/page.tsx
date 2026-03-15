@@ -1462,7 +1462,7 @@ export default function RSVPPage() {
                   <p style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.2em", color: C.silver, marginBottom: 16 }}>Your RSVP Summary</p>
                   {([
                     ["Name", form.fullName],
-                    ["Attending", form.attending === "yes" ? "✓ Joyfully Accepted" : "Regretfully Declined"],
+                    ["Attending", form.attending === "yes" ? "✓ Joyfully Accepted" : "Unable to attend — sending best wishes"],
                     form.attending === "yes" ? ["Guests", String(form.guestCount)] : null,
                     form.attending === "yes" ? ["Arrival", form.arrivingEarly === "yes" ? "Friday, 1st May" : "Saturday, 2nd May"] : null,
                     form.attending === "yes" && form.arrivingEarly === "yes" ? ["Accommodation", confirmationAccommodationLabel()] : null,
@@ -1638,7 +1638,7 @@ export default function RSVPPage() {
               <FormField label="Will you be attending?" required>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <RadioCard label="Joyfully Accept" sublabel="I will be there to celebrate" selected={form.attending === "yes"} onClick={() => up("attending", "yes")} />
-                  <RadioCard label="Regretfully Decline" sublabel="I'm unable to attend" selected={form.attending === "no"} onClick={() => up("attending", "no")} />
+                  <RadioCard label="I'm Unable to Attend" sublabel="But I send my best wishes" selected={form.attending === "no"} onClick={() => up("attending", "no")} />
                 </div>
               </FormField>
 

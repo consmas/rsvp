@@ -678,7 +678,7 @@ function GuestFormModal({
               <label style={labelStyle}>Attending *</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={data.attending} onChange={(e) => set("attending")(e.target.value)}>
                 <option value="yes">✓ Joyfully Accepts</option>
-                <option value="no">✗ Regretfully Declines</option>
+                <option value="no">✗ Unable to attend — sends best wishes</option>
               </select>
             </div>
           </div>
@@ -959,8 +959,8 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
 
   /* ── Data fetching ── */
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const [gRes, aRes, dRes] = await Promise.all([
@@ -975,9 +975,9 @@ export default function AdminPage() {
       if (aData.success) setAccommodations(aData.accommodations);
       if (dData.success) setDonations(dData.donations);
     } catch {
-      setError("Failed to load data. Please refresh.");
+      if (!silent) setError("Failed to load data. Please refresh.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -985,9 +985,9 @@ export default function AdminPage() {
     fetchAll();
   }, [fetchAll]);
 
-  /* Auto-refresh every 30 seconds */
+  /* Auto-refresh every 30 seconds — silent so the UI doesn't flicker */
   useEffect(() => {
-    const id = setInterval(fetchAll, 30_000);
+    const id = setInterval(() => fetchAll(true), 30_000);
     return () => clearInterval(id);
   }, [fetchAll]);
 
@@ -1520,7 +1520,7 @@ export default function AdminPage() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button
-                onClick={fetchAll}
+                onClick={() => fetchAll()}
                 disabled={loading}
                 style={{
                   display: "flex",
@@ -1738,7 +1738,7 @@ export default function AdminPage() {
                                 <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
                                   {item.guest.attending === "yes"
                                     ? `RSVP'd attending · ${item.guest.guest_count} guest${item.guest.guest_count !== 1 ? "s" : ""}`
-                                    : "Declined invitation"}
+                                    : "Unable to attend — sends best wishes"}
                                 </div>
                               </>
                             ) : (
