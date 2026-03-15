@@ -65,6 +65,14 @@ interface Donation {
   created_at: string;
 }
 
+interface AnalyticsSummary {
+  views24h: number;
+  views7d: number;
+  unique24h: number;
+  unique7d: number;
+  topPages: Array<{ path: string; views: number }>;
+}
+
 interface AccommodationFormData {
   hotel_name: string;
   room_type: string;
@@ -937,6 +945,13 @@ export default function AdminPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary>({
+    views24h: 0,
+    views7d: 0,
+    unique24h: 0,
+    unique7d: 0,
+    topPages: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -963,17 +978,20 @@ export default function AdminPage() {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const [gRes, aRes, dRes] = await Promise.all([
+      const [gRes, aRes, dRes, anRes] = await Promise.all([
         fetch("/api/rsvp"),
         fetch("/api/accommodations?all=true"),
         fetch("/api/donations"),
+        fetch("/api/analytics/summary"),
       ]);
       const gData = await gRes.json();
       const aData = await aRes.json();
       const dData = await dRes.json();
+      const anData = await anRes.json();
       if (gData.success) setGuests(gData.guests);
       if (aData.success) setAccommodations(aData.accommodations);
       if (dData.success) setDonations(dData.donations);
+      if (anData.success) setAnalytics(anData.analytics);
     } catch {
       if (!silent) setError("Failed to load data. Please refresh.");
     } finally {
@@ -1622,6 +1640,18 @@ export default function AdminPage() {
                     sub="confirmed only"
                     accent={C.goldMed}
                   />
+                  <StatCard
+                    label="Visitors (24h)"
+                    value={analytics.unique24h}
+                    sub={`${analytics.views24h} page views`}
+                    accent="#0EA5E9"
+                  />
+                  <StatCard
+                    label="Visitors (7d)"
+                    value={analytics.unique7d}
+                    sub={`${analytics.views7d} page views`}
+                    accent="#2563EB"
+                  />
                 </div>
 
                 {/* Charts row */}
@@ -1675,6 +1705,32 @@ export default function AdminPage() {
                     </div>
                     <DonationsLineChart donations={donations} />
                   </div>
+                </div>
+
+                <div
+                  style={{
+                    background: "white",
+                    borderRadius: 16,
+                    padding: "20px 24px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    marginBottom: 28,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2226", marginBottom: 12 }}>
+                    Top Pages (Last 7 Days)
+                  </div>
+                  {analytics.topPages.length === 0 ? (
+                    <div style={{ fontSize: 13, color: "#A8A3A0" }}>No visitor data yet.</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {analytics.topPages.map((p) => (
+                        <div key={p.path} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                          <span style={{ color: "#374151" }}>{p.path}</span>
+                          <span style={{ color: "#6B7280", fontWeight: 600 }}>{p.views}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Recent activity feed */}

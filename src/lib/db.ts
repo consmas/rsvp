@@ -54,6 +54,17 @@ export async function ensureInit(): Promise<void> {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS page_visits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        path TEXT NOT NULL,
+        referrer TEXT,
+        session_id TEXT,
+        visitor_hash TEXT,
+        user_agent TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     /* Migration for databases created before accommodation_id column existed */
     try {
       await db.execute(`ALTER TABLE guests ADD COLUMN accommodation_id INTEGER`);

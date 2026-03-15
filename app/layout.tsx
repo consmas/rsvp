@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import AnalyticsTracker from "./analytics-tracker";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair-var",
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
+        <AnalyticsTracker />
         {children}
       </body>
     </html>
