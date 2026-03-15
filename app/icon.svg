@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#9C0052"/>
+
+  <!-- Gold ring accent -->
+  <circle cx="32" cy="32" r="28" fill="none" stroke="#C8960C" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- E & L initials -->
+  <text
+    x="32" y="39"
+    text-anchor="middle"
+    font-family="Georgia, serif"
+    font-size="22"
+    font-weight="700"
+    fill="#F5CE50"
+    letter-spacing="-1"
+  >E·L</text>
+</svg>

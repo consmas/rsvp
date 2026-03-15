@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   title: "RSVP — Eyram & Loretta's Wedding",
   description:
     "Kindly respond to celebrate the marriage of Eyram & Loretta on Saturday, 2nd May 2026 at Elmina Beach Resort.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
