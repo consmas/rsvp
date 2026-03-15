@@ -75,6 +75,26 @@ interface AccommodationFormData {
   available: boolean;
 }
 
+interface GuestFormData {
+  full_name: string;
+  email: string;
+  phone: string;
+  attending: string;
+  guest_count: string;
+  arriving_early: string;
+  needs_accommodation: string;
+  accommodation_id: string;
+  staying_for_dinner: string;
+  dietary_notes: string;
+  message: string;
+}
+
+const EMPTY_GUEST_FORM: GuestFormData = {
+  full_name: "", email: "", phone: "", attending: "yes",
+  guest_count: "1", arriving_early: "", needs_accommodation: "",
+  accommodation_id: "", staying_for_dinner: "", dietary_notes: "", message: "",
+};
+
 type NavTab = "dashboard" | "rsvps" | "donations" | "accommodations";
 
 const EMPTY_FORM: AccommodationFormData = {
@@ -596,12 +616,173 @@ function AccommodationForm({
 /* ─────────────────────────────────────────────────────────
    Guest table row
 ───────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   Guest form modal (create + edit)
+───────────────────────────────────────────────────────── */
+function GuestFormModal({
+  initial,
+  accommodations,
+  onSave,
+  onClose,
+  saving,
+  title,
+}: {
+  initial: GuestFormData;
+  accommodations: Accommodation[];
+  onSave: (data: GuestFormData) => void;
+  onClose: () => void;
+  saving: boolean;
+  title: string;
+}) {
+  const [data, setData] = useState<GuestFormData>(initial);
+  const set = <K extends keyof GuestFormData>(k: K) => (v: GuestFormData[K]) =>
+    setData((d) => ({ ...d, [k]: v }));
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", border: "1.5px solid #E5E7EB", borderRadius: 10,
+    padding: "9px 12px", fontSize: 14, color: "#2D2226", background: "white",
+    outline: "none", fontFamily: "inherit",
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12, fontWeight: 600, color: C.magenta,
+    display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em",
+  };
+  const rowStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 500,
+      background: "rgba(30,12,22,0.55)", backdropFilter: "blur(3px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        width: "100%", maxWidth: 600, background: "white", borderRadius: 20,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.25)", overflow: "hidden",
+        maxHeight: "90vh", display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{ background: C.magenta, padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, color: "white", fontSize: 17, fontWeight: 700 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ padding: "22px 24px", overflowY: "auto", flex: 1 }}>
+          {/* Name + attending */}
+          <div style={rowStyle}>
+            <div>
+              <label style={labelStyle}>Full Name *</label>
+              <input style={inputStyle} value={data.full_name} onChange={(e) => set("full_name")(e.target.value)} placeholder="e.g. Ama Mensah" />
+            </div>
+            <div>
+              <label style={labelStyle}>Attending *</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={data.attending} onChange={(e) => set("attending")(e.target.value)}>
+                <option value="yes">✓ Joyfully Accepts</option>
+                <option value="no">✗ Regretfully Declines</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div style={rowStyle}>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input style={inputStyle} type="email" value={data.email} onChange={(e) => set("email")(e.target.value)} placeholder="email@example.com" />
+            </div>
+            <div>
+              <label style={labelStyle}>Phone</label>
+              <input style={inputStyle} type="tel" value={data.phone} onChange={(e) => set("phone")(e.target.value)} placeholder="+233 XX XXX XXXX" />
+            </div>
+          </div>
+
+          {data.attending === "yes" && (
+            <>
+              {/* Party size + arrival */}
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Number of Guests</label>
+                  <input style={inputStyle} type="number" min="1" value={data.guest_count} onChange={(e) => set("guest_count")(e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Arrival</label>
+                  <select style={{ ...inputStyle, cursor: "pointer" }} value={data.arriving_early} onChange={(e) => set("arriving_early")(e.target.value)}>
+                    <option value="">— Not specified —</option>
+                    <option value="yes">Friday 1st May</option>
+                    <option value="no">Saturday 2nd May</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Accommodation */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Accommodation</label>
+                <select style={{ ...inputStyle, cursor: "pointer" }} value={data.accommodation_id} onChange={(e) => { set("accommodation_id")(e.target.value); set("needs_accommodation")(e.target.value ? "yes" : "no"); }}>
+                  <option value="">— Own arrangements / not specified —</option>
+                  {accommodations.map((a) => (
+                    <option key={a.id} value={String(a.id)}>{a.room_type} — {a.hotel_name} ({a.currency} {a.price_per_night}/night)</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lunch + dietary */}
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Reception Lunch</label>
+                  <select style={{ ...inputStyle, cursor: "pointer" }} value={data.staying_for_dinner} onChange={(e) => set("staying_for_dinner")(e.target.value)}>
+                    <option value="">— Not specified —</option>
+                    <option value="yes">Staying for lunch</option>
+                    <option value="no">Meal to take away</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Dietary Notes</label>
+                  <input style={inputStyle} value={data.dietary_notes} onChange={(e) => set("dietary_notes")(e.target.value)} placeholder="Allergies, halal, etc." />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Message */}
+          <div style={{ marginBottom: 6 }}>
+            <label style={labelStyle}>Message for the couple</label>
+            <textarea
+              style={{ ...inputStyle, resize: "vertical", minHeight: 80 }}
+              value={data.message}
+              onChange={(e) => set("message")(e.target.value)}
+              placeholder="Well-wishes (optional)"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 24px", borderTop: "1px solid #F3F4F6", display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} disabled={saving}
+            style={{ padding: "9px 20px", borderRadius: 9, border: "1.5px solid #E5E7EB", background: "white", color: "#6B7280", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Cancel
+          </button>
+          <button onClick={() => onSave(data)} disabled={saving || !data.full_name.trim()}
+            style={{
+              padding: "9px 24px", borderRadius: 9, border: "none",
+              background: saving || !data.full_name.trim() ? "#E5E7EB" : C.magenta,
+              color: saving || !data.full_name.trim() ? "#A8A3A0" : "white",
+              fontSize: 14, fontWeight: 700, cursor: saving || !data.full_name.trim() ? "default" : "pointer", fontFamily: "inherit",
+            }}>
+            {saving ? "Saving…" : "Save RSVP"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GuestRow({
   guest,
   onDelete,
+  onEdit,
 }: {
   guest: Guest;
   onDelete: (id: number) => void;
+  onEdit: (guest: Guest) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -699,7 +880,7 @@ function GuestRow({
         {formatDate(guest.created_at)}
       </td>
 
-      <td style={{ ...tdStyle, textAlign: "center" }}>
+      <td style={{ ...tdStyle, textAlign: "center", whiteSpace: "nowrap" }}>
         {confirming ? (
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <button
@@ -716,21 +897,30 @@ function GuestRow({
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setConfirming(true)}
-            title="Delete RSVP"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#D1D5DB", padding: 4 }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#D1D5DB")}
-          >
-            <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm0 2h2l.382.764A1 1 0 0012.382 6H7.618A1 1 0 008.618 4.764L9 4zM7 8a1 1 0 012 0v5a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v5a1 1 0 11-2 0V8z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+          <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+            <button
+              onClick={() => onEdit(guest)}
+              title="Edit RSVP"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#D1D5DB", padding: 4 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = C.magenta)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#D1D5DB")}
+            >
+              <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              title="Delete RSVP"
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#D1D5DB", padding: 4 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#D1D5DB")}
+            >
+              <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor">
+                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm0 2h2l.382.764A1 1 0 0012.382 6H7.618A1 1 0 008.618 4.764L9 4zM7 8a1 1 0 012 0v5a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v5a1 1 0 11-2 0V8z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         )}
       </td>
     </tr>
@@ -757,6 +947,12 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [toast, setToast] = useState("");
+
+  /* Guest form state */
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [editingGuestId, setEditingGuestId] = useState<number | null>(null);
+  const [guestFormInitial, setGuestFormInitial] = useState<GuestFormData>(EMPTY_GUEST_FORM);
+  const [savingGuest, setSavingGuest] = useState(false);
 
   /* Guest filter */
   const [guestFilter, setGuestFilter] = useState<"all" | "yes" | "no">("all");
@@ -916,6 +1112,68 @@ export default function AdminPage() {
     }
   }
 
+  function openNewGuest() {
+    setEditingGuestId(null);
+    setGuestFormInitial(EMPTY_GUEST_FORM);
+    setShowGuestForm(true);
+  }
+
+  function openEditGuest(guest: Guest) {
+    setEditingGuestId(guest.id);
+    setGuestFormInitial({
+      full_name: guest.full_name,
+      email: guest.email ?? "",
+      phone: guest.phone ?? "",
+      attending: guest.attending,
+      guest_count: String(guest.guest_count),
+      arriving_early: guest.arriving_early ?? "",
+      needs_accommodation: guest.needs_accommodation ?? "",
+      accommodation_id: guest.accommodation_id ? String(guest.accommodation_id) : "",
+      staying_for_dinner: guest.staying_for_dinner ?? "",
+      dietary_notes: guest.dietary_notes ?? "",
+      message: guest.message ?? "",
+    });
+    setShowGuestForm(true);
+  }
+
+  async function handleSaveGuest(data: GuestFormData) {
+    setSavingGuest(true);
+    try {
+      const body = {
+        full_name: data.full_name.trim(),
+        email: data.email || null,
+        phone: data.phone || null,
+        attending: data.attending,
+        guest_count: Number(data.guest_count) || 1,
+        arriving_early: data.arriving_early || null,
+        needs_accommodation: data.needs_accommodation || null,
+        accommodation_id: data.accommodation_id ? Number(data.accommodation_id) : null,
+        staying_for_dinner: data.staying_for_dinner || null,
+        dietary_notes: data.dietary_notes || null,
+        message: data.message || null,
+      };
+      if (editingGuestId) {
+        const res = await fetch(`/api/rsvp/${editingGuestId}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        const result = await res.json();
+        if (result.success) { await fetchAll(); setShowGuestForm(false); showToast("RSVP updated."); }
+        else showToast(result.error ?? "Failed to update.");
+      } else {
+        const res = await fetch("/api/rsvp", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        const result = await res.json();
+        if (result.success) { await fetchAll(); setShowGuestForm(false); showToast("RSVP created."); }
+        else showToast(result.error ?? "Failed to create.");
+      }
+    } catch {
+      showToast("Network error. Please try again.");
+    } finally {
+      setSavingGuest(false);
+    }
+  }
+
   /* ── Derived stats ── */
   const attending = guests.filter((g) => g.attending === "yes");
   const declining = guests.filter((g) => g.attending === "no");
@@ -977,6 +1235,18 @@ export default function AdminPage() {
         flexDirection: "column",
       }}
     >
+      {/* Guest form modal */}
+      {showGuestForm && (
+        <GuestFormModal
+          title={editingGuestId ? "Edit RSVP" : "New RSVP"}
+          initial={guestFormInitial}
+          accommodations={accommodations}
+          onSave={handleSaveGuest}
+          onClose={() => setShowGuestForm(false)}
+          saving={savingGuest}
+        />
+      )}
+
       {/* ════════════════════════════════════════════════
           MOBILE TOP BAR (visible on small screens)
       ════════════════════════════════════════════════ */}
@@ -1514,7 +1784,7 @@ export default function AdminPage() {
             ════════════════════════════════════════════ */}
             {!loading && tab === "rsvps" && (
               <div>
-                {/* Filters */}
+                {/* Filters + New RSVP button */}
                 <div
                   style={{
                     display: "flex",
@@ -1524,6 +1794,19 @@ export default function AdminPage() {
                     alignItems: "center",
                   }}
                 >
+                  <button
+                    onClick={openNewGuest}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "9px 18px", borderRadius: 10, border: "none",
+                      background: C.magenta, color: "white",
+                      fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      boxShadow: "0 2px 8px rgba(156,0,82,0.2)",
+                    }}
+                  >
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
+                    New RSVP
+                  </button>
                   <input
                     type="search"
                     placeholder="Search by name, email or phone…"
@@ -1626,7 +1909,7 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {filteredGuests.map((g) => (
-                          <GuestRow key={g.id} guest={g} onDelete={handleDeleteGuest} />
+                          <GuestRow key={g.id} guest={g} onDelete={handleDeleteGuest} onEdit={openEditGuest} />
                         ))}
                       </tbody>
                     </table>
