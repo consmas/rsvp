@@ -47,6 +47,13 @@ const C = {
   silver: "#7A6876",
   oceanTeal: "#1A8A7D",
   sandWarm: "#E8D5B7",
+  /* ── Event palette (pastel dress code) ── */
+  beige: "#F5ECD7",
+  seaBlue: "#A8DCEA",
+  oceanBlue: "#93B8E5",
+  sageGreen: "#B8D4A8",
+  lilac: "#D8C0EC",
+  blushMagenta: "#F2A8CC",
 };
 
 /* ═══════════════════════════════════════════
@@ -134,26 +141,30 @@ function formatPrice(amount: number, currency: string): string {
 /* ═══════════════════════════════════════════
    SVG COMPONENTS
    ═══════════════════════════════════════════ */
-function KenteStrip() {
+function KenteStrip({ id = "kenteWeave" }: { id?: string }) {
   return (
-    <svg width="100%" height="10" style={{ display: "block" }}>
+    <svg width="100%" height="12" style={{ display: "block" }}>
       <defs>
-        <pattern id="kenteWeave" x="0" y="0" width="40" height="10" patternUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="10" height="5" fill={C.magDeep} />
-          <rect x="10" y="0" width="10" height="5" fill={C.goldRich} />
-          <rect x="20" y="0" width="10" height="5" fill={C.magBright} />
-          <rect x="30" y="0" width="10" height="5" fill={C.goldMed} />
-          <rect x="0" y="5" width="10" height="5" fill={C.goldMed} />
-          <rect x="10" y="5" width="10" height="5" fill={C.magBright} />
-          <rect x="20" y="5" width="10" height="5" fill={C.goldRich} />
-          <rect x="30" y="5" width="10" height="5" fill={C.magDeep} />
-          <rect x="2" y="2" width="6" height="1" fill="rgba(255,255,255,0.15)" />
-          <rect x="12" y="2" width="6" height="1" fill="rgba(255,255,255,0.1)" />
-          <rect x="22" y="7" width="6" height="1" fill="rgba(255,255,255,0.12)" />
-          <rect x="32" y="7" width="6" height="1" fill="rgba(255,255,255,0.08)" />
+        <pattern id={id} x="0" y="0" width="72" height="12" patternUnits="userSpaceOnUse">
+          <rect x="0"  y="0" width="12" height="6" fill={C.magDeep}       />
+          <rect x="12" y="0" width="12" height="6" fill={C.seaBlue}       />
+          <rect x="24" y="0" width="12" height="6" fill={C.oceanBlue}     />
+          <rect x="36" y="0" width="12" height="6" fill={C.sageGreen}     />
+          <rect x="48" y="0" width="12" height="6" fill={C.lilac}         />
+          <rect x="60" y="0" width="12" height="6" fill={C.beige}         />
+          <rect x="0"  y="6" width="12" height="6" fill={C.beige}         />
+          <rect x="12" y="6" width="12" height="6" fill={C.lilac}         />
+          <rect x="24" y="6" width="12" height="6" fill={C.sageGreen}     />
+          <rect x="36" y="6" width="12" height="6" fill={C.oceanBlue}     />
+          <rect x="48" y="6" width="12" height="6" fill={C.seaBlue}       />
+          <rect x="60" y="6" width="12" height="6" fill={C.magDeep}       />
+          <rect x="2"  y="2" width="8"  height="1" fill="rgba(255,255,255,0.18)" />
+          <rect x="26" y="2" width="8"  height="1" fill="rgba(255,255,255,0.14)" />
+          <rect x="50" y="8" width="8"  height="1" fill="rgba(255,255,255,0.14)" />
+          <rect x="14" y="8" width="8"  height="1" fill="rgba(255,255,255,0.12)" />
         </pattern>
       </defs>
-      <rect width="100%" height="10" fill="url(#kenteWeave)" />
+      <rect width="100%" height="12" fill={`url(#${id})`} />
     </svg>
   );
 }
@@ -242,17 +253,17 @@ function AdinkraOdo({ size = 40, color = C.goldRich }: { size?: number; color?: 
 
 function FloatingElements() {
   const items = [
-    { type: "heart", x: "6%", y: "12%", size: 30, delay: 0, color: C.magBright },
-    { type: "odo", x: "90%", y: "18%", size: 34, delay: 1.8, color: C.goldMed },
+    { type: "heart",   x: "6%",  y: "12%", size: 30, delay: 0,   color: C.magBright  },
+    { type: "odo",     x: "90%", y: "18%", size: 34, delay: 1.8, color: C.oceanBlue  },
     { type: "sparkle", x: "15%", y: "28%", size: 14, delay: 0.5, color: C.goldBright },
-    { type: "heart", x: "85%", y: "60%", size: 24, delay: 2.5, color: C.goldRich },
-    { type: "odo", x: "8%", y: "72%", size: 28, delay: 3.2, color: C.magBright },
+    { type: "heart",   x: "85%", y: "60%", size: 24, delay: 2.5, color: C.lilac      },
+    { type: "odo",     x: "8%",  y: "72%", size: 28, delay: 3.2, color: C.sageGreen  },
     { type: "sparkle", x: "92%", y: "42%", size: 12, delay: 1.2, color: C.goldBright },
-    { type: "sparkle", x: "50%", y: "8%", size: 16, delay: 2, color: C.goldBright },
-    { type: "sparkle", x: "78%", y: "82%", size: 10, delay: 3.8, color: C.goldBright },
-    { type: "petal", x: "20%", y: "45%", size: 18, delay: 0.8, color: C.magPale },
-    { type: "petal", x: "80%", y: "35%", size: 18, delay: 2.2, color: C.magPale },
-    { type: "petal", x: "35%", y: "80%", size: 18, delay: 4, color: C.magPale },
+    { type: "sparkle", x: "50%", y: "8%",  size: 16, delay: 2,   color: C.lilac      },
+    { type: "sparkle", x: "78%", y: "82%", size: 10, delay: 3.8, color: C.sageGreen  },
+    { type: "petal",   x: "20%", y: "45%", size: 18, delay: 0.8, color: C.magPale    },
+    { type: "petal",   x: "80%", y: "35%", size: 18, delay: 2.2, color: C.lilac      },
+    { type: "petal",   x: "35%", y: "80%", size: 18, delay: 4,   color: C.beige      },
   ];
   return (
     <>
@@ -286,7 +297,7 @@ function Confetti() {
     delay: Math.random() * 2,
     dur: 2.5 + Math.random() * 2,
     size: 6 + Math.random() * 8,
-    color: [C.magDeep, C.magBright, C.goldRich, C.goldBright, C.oceanTeal, C.magPale][i % 6],
+    color: [C.magDeep, C.blushMagenta, C.goldRich, C.seaBlue, C.oceanBlue, C.sageGreen, C.lilac, C.beige][i % 8],
     shape: i % 3 === 0 ? "circle" : "rect",
     rot: Math.random() * 360,
   }));
@@ -480,6 +491,121 @@ function SectionDivider() {
     <div style={{ display: "flex", alignItems: "center", margin: "8px 0 28px", gap: 12 }}>
       <div style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${C.goldRich}30, transparent)` }} />
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   EVENT COLOR PALETTE
+   ═══════════════════════════════════════════ */
+const EVENT_PALETTE = [
+  { name: "Beige",      sub: "Warm Sand",      hex: C.beige,        },
+  { name: "Sea Blue",   sub: "Soft Aqua",      hex: C.seaBlue,      },
+  { name: "Ocean Blue", sub: "Cornflower",      hex: C.oceanBlue,    },
+  { name: "Sage Green", sub: "Soft Botanical",  hex: C.sageGreen,    },
+  { name: "Lilac",      sub: "Soft Lavender",   hex: C.lilac,        },
+  { name: "Magenta",    sub: "Blush Rose",      hex: C.blushMagenta, },
+];
+
+function EventColors() {
+  return (
+    <section style={{ padding: "0 20px 56px", maxWidth: 620, margin: "0 auto" }}>
+      {/* Card */}
+      <div style={{
+        background: "#fff", borderRadius: 24, overflow: "hidden",
+        boxShadow: `0 4px 40px rgba(30,12,22,0.07), 0 1px 4px rgba(30,12,22,0.04)`,
+        border: "1px solid rgba(200,150,12,0.08)",
+      }}>
+        {/* Rainbow top bar using all 6 pastel colors */}
+        <div style={{ display: "flex", height: 8 }}>
+          {EVENT_PALETTE.map((c) => (
+            <div key={c.name} style={{ flex: 1, backgroundColor: c.hex }} />
+          ))}
+        </div>
+
+        <div style={{ padding: "28px 28px 32px" }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <p style={{
+              fontSize: 11, letterSpacing: "0.32em", textTransform: "uppercase",
+              color: C.goldRich, fontWeight: 700, marginBottom: 8,
+            }}>
+              ✦ Dress Code ✦
+            </p>
+            <p style={{
+              fontFamily: font.heading, fontSize: 22, fontWeight: 600,
+              color: C.magDeep, marginBottom: 6,
+            }}>
+              Pastel Elegance
+            </p>
+            <p style={{ fontSize: 14, color: C.silver, fontStyle: "italic", lineHeight: 1.6 }}>
+              We'd love for you to join us dressed in any of these soft, beautiful shades
+            </p>
+          </div>
+
+          {/* Large swatch bar */}
+          <div style={{
+            display: "flex", borderRadius: 14, overflow: "hidden",
+            boxShadow: "0 4px 20px rgba(30,12,22,0.08)", height: 110, marginBottom: 20,
+          }}>
+            {EVENT_PALETTE.map((c) => (
+              <div key={c.name} style={{
+                flex: 1, backgroundColor: c.hex,
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "flex-end",
+                paddingBottom: 10,
+              }}>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                  textTransform: "uppercase", color: "rgba(30,12,22,0.6)",
+                  lineHeight: 1.3, textAlign: "center", padding: "0 3px",
+                  writingMode: "horizontal-tb",
+                }}>
+                  {c.name.split(" ").map((w, i) => (
+                    <span key={i} style={{ display: "block" }}>{w}</span>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Named chips grid */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10,
+          }}>
+            {EVENT_PALETTE.map((c) => (
+              <div key={c.name} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                background: "#FFFBF8", border: "1px solid #EDE0E8",
+                borderRadius: 12, padding: "10px 12px",
+                boxShadow: "0 1px 4px rgba(30,12,22,0.04)",
+              }}>
+                <span style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: c.hex,
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.1)",
+                }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, lineHeight: 1.2 }}>
+                    {c.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.silver, marginTop: 1 }}>
+                    {c.sub}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Note */}
+          <p style={{
+            textAlign: "center", fontSize: 13, color: C.silver,
+            marginTop: 18, lineHeight: 1.65, fontStyle: "italic",
+          }}>
+            Mix and match — any combination of these shades is perfect ✦
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1077,6 +1203,9 @@ export default function RSVPPage() {
         </div>
       </section>
 
+      {/* ────── EVENT COLORS ────── */}
+      {!submitted && <EventColors />}
+
       {/* ────── FORM ────── */}
       {!submitted && (
         <section ref={formRef} style={{ maxWidth: 620, margin: "0 auto", padding: "0 20px 80px" }}>
@@ -1249,7 +1378,7 @@ export default function RSVPPage() {
         </section>
       )}
 
-      {!submitted && <KenteStrip />}
+      {!submitted && <KenteStrip id="kenteWeaveBottom" />}
     </div>
   );
 }
