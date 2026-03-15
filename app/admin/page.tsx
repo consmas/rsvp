@@ -760,26 +760,44 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <a
-            href="/"
-            style={{
-              fontSize: 13,
-              color: "rgba(255,255,255,0.7)",
-              textDecoration: "none",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M7.707 14.707a1 1 0 01-1.414 0L1.586 10H1a1 1 0 010-2h.586L6.293 3.293a1 1 0 011.414 1.414L4.414 8H14a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-            View RSVP page
-          </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <a
+              href="/"
+              style={{
+                fontSize: 13,
+                color: "rgba(255,255,255,0.7)",
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M7.707 14.707a1 1 0 01-1.414 0L1.586 10H1a1 1 0 010-2h.586L6.293 3.293a1 1 0 011.414 1.414L4.414 8H14a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              View RSVP page
+            </a>
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/admin/login";
+              }}
+              style={{
+                fontSize: 13, color: "rgba(255,255,255,0.7)", background: "none",
+                border: "1px solid rgba(255,255,255,0.25)", borderRadius: 6,
+                padding: "5px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                <path d="M10 3a1 1 0 011 1v2h2a1 1 0 010 2h-2v2a1 1 0 01-1.707.707l-3-3a1 1 0 010-1.414l3-3A1 1 0 0110 3zM3 3a1 1 0 011-1h1a1 1 0 010 2H4v8h1a1 1 0 010 2H4a1 1 0 01-1-1V3z"/>
+              </svg>
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
