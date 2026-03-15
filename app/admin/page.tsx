@@ -2,14 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const ADMIN_C = {
-  magenta:    "#9C0052",
-  magentaMed: "#C20068",
+/* ─────────────────────────────────────────────────────────
+   Color palette
+───────────────────────────────────────────────────────── */
+const C = {
+  magenta:       "#9C0052",
+  magentaMed:    "#C20068",
   magentaBright: "#E91E8C",
-  gold:       "#C8960C",
-  goldMed:    "#E0B030",
-  cream:      "#FEF0F6",
-  border:     "#F0D0E8",
+  gold:          "#C8960C",
+  goldMed:       "#E0B030",
+  goldBright:    "#F5CE50",
+  bg:            "#F8F4F7",
+  sidebarBg:     "#1E0C16",
+  cream:         "#FEF0F6",
+  border:        "#F0D0E8",
 };
 
 /* ─────────────────────────────────────────────────────────
@@ -47,6 +53,18 @@ interface Guest {
   created_at: string;
 }
 
+interface Donation {
+  id: number;
+  reference: string;
+  amount: number;
+  currency: string;
+  donor_name: string | null;
+  donor_phone: string | null;
+  donor_network: string | null;
+  status: "pending" | "confirmed" | "failed";
+  created_at: string;
+}
+
 interface AccommodationFormData {
   hotel_name: string;
   room_type: string;
@@ -56,6 +74,8 @@ interface AccommodationFormData {
   max_guests: string;
   available: boolean;
 }
+
+type NavTab = "dashboard" | "rsvps" | "donations" | "accommodations";
 
 const EMPTY_FORM: AccommodationFormData = {
   hotel_name: "",
@@ -93,8 +113,15 @@ function formatDate(iso: string): string {
   });
 }
 
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 /* ─────────────────────────────────────────────────────────
-   UI primitives
+   UI Primitives
 ───────────────────────────────────────────────────────── */
 function Badge({
   color,
@@ -105,10 +132,10 @@ function Badge({
 }) {
   const colors = {
     green: { background: "#D1FAE5", color: "#065F46" },
-    red: { background: "#FEE2E2", color: "#991B1B" },
-    gold: { background: "#FEF3C7", color: "#92400E" },
-    grey: { background: "#F3F4F6", color: "#374151" },
-    blue: { background: "#DBEAFE", color: "#1E40AF" },
+    red:   { background: "#FEE2E2", color: "#991B1B" },
+    gold:  { background: "#FEF3C7", color: "#92400E" },
+    grey:  { background: "#F3F4F6", color: "#374151" },
+    blue:  { background: "#DBEAFE", color: "#1E40AF" },
   };
   return (
     <span
@@ -144,7 +171,7 @@ function StatCard({
         borderRadius: 16,
         padding: "20px 24px",
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        borderLeft: `4px solid ${accent ?? ADMIN_C.gold}`,
+        borderLeft: `4px solid ${accent ?? C.gold}`,
         minWidth: 0,
       }}
     >
@@ -156,6 +183,186 @@ function StatCard({
       </div>
       {sub && <div style={{ fontSize: 12, color: "#A8A3A0", marginTop: 4 }}>{sub}</div>}
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   SVG Bar Chart — attending vs declining
+───────────────────────────────────────────────────────── */
+function AttendanceBarChart({
+  attending,
+  declining,
+}: {
+  attending: number;
+  declining: number;
+}) {
+  const W = 340;
+  const H = 110;
+  const barH = 34;
+  const labelW = 80;
+  const maxVal = Math.max(attending, declining, 1);
+  const availW = W - labelW - 50;
+
+  const attW = Math.round((attending / maxVal) * availW);
+  const decW = Math.round((declining / maxVal) * availW);
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+      {/* Attending bar */}
+      <text x={0} y={barH / 2 + 5} fontSize={12} fill="#6B7280" fontFamily="inherit">
+        Attending
+      </text>
+      <rect x={labelW} y={4} width={Math.max(attW, 2)} height={barH - 8} rx={6} fill="#059669" />
+      <text
+        x={labelW + Math.max(attW, 2) + 8}
+        y={barH / 2 + 5}
+        fontSize={13}
+        fontWeight="700"
+        fill="#2D2226"
+        fontFamily="inherit"
+      >
+        {attending}
+      </text>
+
+      {/* Declining bar */}
+      <text x={0} y={barH + barH / 2 + 10} fontSize={12} fill="#6B7280" fontFamily="inherit">
+        Declined
+      </text>
+      <rect x={labelW} y={barH + 9} width={Math.max(decW, 2)} height={barH - 8} rx={6} fill="#DC2626" />
+      <text
+        x={labelW + Math.max(decW, 2) + 8}
+        y={barH + barH / 2 + 10}
+        fontSize={13}
+        fontWeight="700"
+        fill="#2D2226"
+        fontFamily="inherit"
+      >
+        {declining}
+      </text>
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   SVG Line Chart — cumulative donations over time
+───────────────────────────────────────────────────────── */
+function DonationsLineChart({ donations }: { donations: Donation[] }) {
+  const W = 340;
+  const H = 120;
+  const padL = 48;
+  const padR = 16;
+  const padT = 12;
+  const padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  // Build daily totals
+  const confirmed = donations.filter((d) => d.status !== "failed");
+  if (confirmed.length === 0) {
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+        <text x={W / 2} y={H / 2} textAnchor="middle" fontSize={13} fill="#A8A3A0" fontFamily="inherit">
+          No donation data yet
+        </text>
+      </svg>
+    );
+  }
+
+  // Group by day
+  const dayMap: Record<string, number> = {};
+  for (const d of confirmed) {
+    const day = d.created_at.slice(0, 10);
+    dayMap[day] = (dayMap[day] ?? 0) + d.amount;
+  }
+  const sortedDays = Object.keys(dayMap).sort();
+
+  // Cumulative
+  const points: { day: string; cum: number }[] = [];
+  let running = 0;
+  for (const day of sortedDays) {
+    running += dayMap[day];
+    points.push({ day, cum: running });
+  }
+
+  const maxCum = points[points.length - 1]?.cum ?? 1;
+
+  const toX = (i: number) =>
+    padL + (points.length === 1 ? chartW / 2 : (i / (points.length - 1)) * chartW);
+  const toY = (v: number) => padT + chartH - (v / maxCum) * chartH;
+
+  const pathD =
+    points.length === 1
+      ? `M ${toX(0)} ${toY(points[0].cum)}`
+      : points.map((p, i) => `${i === 0 ? "M" : "L"} ${toX(i)} ${toY(p.cum)}`).join(" ");
+
+  const areaD =
+    points.length === 1
+      ? ""
+      : `${pathD} L ${toX(points.length - 1)} ${padT + chartH} L ${toX(0)} ${padT + chartH} Z`;
+
+  // Y axis labels
+  const yTicks = [0, 0.5, 1].map((r) => ({
+    v: Math.round(maxCum * r),
+    y: toY(maxCum * r),
+  }));
+
+  // X axis: show first and last day labels
+  const xLabels =
+    points.length <= 1
+      ? points.map((p, i) => ({ label: shortDate(p.day + "T00:00:00"), x: toX(i) }))
+      : [
+          { label: shortDate(points[0].day + "T00:00:00"), x: toX(0) },
+          { label: shortDate(points[points.length - 1].day + "T00:00:00"), x: toX(points.length - 1) },
+        ];
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+      {/* Grid lines */}
+      {yTicks.map((t) => (
+        <line
+          key={t.v}
+          x1={padL}
+          y1={t.y}
+          x2={W - padR}
+          y2={t.y}
+          stroke="#F0D0E8"
+          strokeWidth={1}
+        />
+      ))}
+
+      {/* Area fill */}
+      {areaD && <path d={areaD} fill="rgba(200,150,12,0.12)" />}
+
+      {/* Line */}
+      <path d={pathD} fill="none" stroke={C.gold} strokeWidth={2.5} strokeLinejoin="round" />
+
+      {/* Dots */}
+      {points.map((p, i) => (
+        <circle key={p.day} cx={toX(i)} cy={toY(p.cum)} r={3.5} fill={C.gold} />
+      ))}
+
+      {/* Y axis labels */}
+      {yTicks.map((t) => (
+        <text key={t.v} x={padL - 6} y={t.y + 4} textAnchor="end" fontSize={10} fill="#A8A3A0" fontFamily="inherit">
+          {t.v >= 1000 ? `${(t.v / 1000).toFixed(0)}k` : t.v}
+        </text>
+      ))}
+
+      {/* X axis labels */}
+      {xLabels.map((xl) => (
+        <text
+          key={xl.label + xl.x}
+          x={xl.x}
+          y={H - 4}
+          textAnchor="middle"
+          fontSize={10}
+          fill="#A8A3A0"
+          fontFamily="inherit"
+        >
+          {xl.label}
+        </text>
+      ))}
+    </svg>
   );
 }
 
@@ -189,12 +396,13 @@ function AccommodationForm({
     background: "white",
     outline: "none",
     fontFamily: "inherit",
+    boxSizing: "border-box",
   };
 
   return (
     <div
       style={{
-        background: ADMIN_C.cream,
+        background: C.cream,
         borderRadius: 16,
         padding: 24,
         border: "1.5px solid rgba(200,150,12,0.3)",
@@ -207,7 +415,7 @@ function AccommodationForm({
       >
         {/* Hotel name */}
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Hotel Name *
           </label>
           <input
@@ -220,7 +428,7 @@ function AccommodationForm({
 
         {/* Room type */}
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Room Type *
           </label>
           <input
@@ -233,7 +441,7 @@ function AccommodationForm({
 
         {/* Price */}
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Price Per Night *
           </label>
           <input
@@ -248,7 +456,7 @@ function AccommodationForm({
 
         {/* Currency */}
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Currency
           </label>
           <select
@@ -265,7 +473,7 @@ function AccommodationForm({
 
         {/* Max guests */}
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Max Guests
           </label>
           <input
@@ -280,7 +488,7 @@ function AccommodationForm({
 
         {/* Available toggle */}
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
             Status
           </label>
           <button
@@ -333,7 +541,7 @@ function AccommodationForm({
 
       {/* Description — full width */}
       <div style={{ marginBottom: 20 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: ADMIN_C.magenta, display: "block", marginBottom: 6 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.magenta, display: "block", marginBottom: 6 }}>
           Description{" "}
           <span style={{ fontWeight: 400, color: "#A8A3A0" }}>(optional)</span>
         </label>
@@ -371,7 +579,7 @@ function AccommodationForm({
             padding: "10px 24px",
             borderRadius: 10,
             border: "none",
-            background: saving ? "#D1D5DB" : ADMIN_C.magenta,
+            background: saving ? "#D1D5DB" : C.magenta,
             color: saving ? "#9CA3AF" : "white",
             fontSize: 14,
             fontWeight: 600,
@@ -386,7 +594,7 @@ function AccommodationForm({
 }
 
 /* ─────────────────────────────────────────────────────────
-   Guest row in table
+   Guest table row
 ───────────────────────────────────────────────────────── */
 function GuestRow({
   guest,
@@ -445,7 +653,7 @@ function GuestRow({
             <div style={{ fontWeight: 600, fontSize: 13 }}>{guest.accommodation_room}</div>
             <div style={{ fontSize: 12, color: "#A8A3A0" }}>{guest.accommodation_hotel}</div>
             {guest.accommodation_price != null && guest.accommodation_currency && (
-              <div style={{ fontSize: 12, color: ADMIN_C.gold, fontWeight: 600, marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: C.gold, fontWeight: 600, marginTop: 2 }}>
                 {formatPrice(guest.accommodation_price, guest.accommodation_currency)}/night
               </div>
             )}
@@ -533,9 +741,12 @@ function GuestRow({
    Main admin page
 ───────────────────────────────────────────────────────── */
 export default function AdminPage() {
-  const [tab, setTab] = useState<"guests" | "accommodations">("guests");
+  const [tab, setTab] = useState<NavTab>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [guests, setGuests] = useState<Guest[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -556,14 +767,17 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const [gRes, aRes] = await Promise.all([
+      const [gRes, aRes, dRes] = await Promise.all([
         fetch("/api/rsvp"),
         fetch("/api/accommodations?all=true"),
+        fetch("/api/donations"),
       ]);
       const gData = await gRes.json();
       const aData = await aRes.json();
+      const dData = await dRes.json();
       if (gData.success) setGuests(gData.guests);
       if (aData.success) setAccommodations(aData.accommodations);
+      if (dData.success) setDonations(dData.donations);
     } catch {
       setError("Failed to load data. Please refresh.");
     } finally {
@@ -573,6 +787,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchAll();
+  }, [fetchAll]);
+
+  /* Auto-refresh every 30 seconds */
+  useEffect(() => {
+    const id = setInterval(fetchAll, 30_000);
+    return () => clearInterval(id);
   }, [fetchAll]);
 
   /* Toast helper */
@@ -700,9 +920,9 @@ export default function AdminPage() {
   const attending = guests.filter((g) => g.attending === "yes");
   const declining = guests.filter((g) => g.attending === "no");
   const totalGuests = attending.reduce((s, g) => s + g.guest_count, 0);
-  const needsAccom = guests.filter((g) => g.needs_accommodation === "yes" || g.accommodation_id != null);
-  const stayingDinner = guests.filter((g) => g.staying_for_dinner === "yes");
-  const arrivingEarly = guests.filter((g) => g.arriving_early === "yes");
+  const totalDonations = donations
+    .filter((d) => d.status !== "failed")
+    .reduce((s, d) => s + d.amount, 0);
 
   /* ── Filtered guest list ── */
   const filteredGuests = guests.filter((g) => {
@@ -716,68 +936,196 @@ export default function AdminPage() {
     return matchesFilter && matchesSearch;
   });
 
+  /* ── Recent activity feed (last 5 RSVPs + last 5 donations by created_at desc) ── */
+  type ActivityItem =
+    | { kind: "rsvp"; ts: string; guest: Guest }
+    | { kind: "donation"; ts: string; donation: Donation };
+
+  const activityItems: ActivityItem[] = [
+    ...guests.slice(0, 5).map((g): ActivityItem => ({ kind: "rsvp", ts: g.created_at, guest: g })),
+    ...donations.slice(0, 5).map((d): ActivityItem => ({ kind: "donation", ts: d.created_at, donation: d })),
+  ]
+    .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
+    .slice(0, 8);
+
+  /* ── Tab page title ── */
+  const pageTitles: Record<NavTab, string> = {
+    dashboard:      "Dashboard",
+    rsvps:          "RSVPs",
+    donations:      "Donations",
+    accommodations: "Accommodations",
+  };
+
+  /* ── Sidebar nav items ── */
+  const navItems: { id: NavTab; icon: string; label: string; count?: number }[] = [
+    { id: "dashboard",      icon: "📊", label: "Dashboard" },
+    { id: "rsvps",          icon: "👥", label: "RSVPs",          count: guests.length },
+    { id: "donations",      icon: "💛", label: "Donations",      count: donations.length },
+    { id: "accommodations", icon: "🏨", label: "Accommodations", count: accommodations.length },
+  ];
+
   /* ─────────────────────────────────────────────────────
      Render
   ───────────────────────────────────────────────────── */
   return (
-    <div style={{ minHeight: "100vh", background: "#F9FAFB", fontFamily: "var(--font-body)" }}>
-
-      {/* ── Header ── */}
-      <header
+    <div
+      style={{
+        minHeight: "100vh",
+        background: C.bg,
+        fontFamily: "var(--font-body, system-ui, sans-serif)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ════════════════════════════════════════════════
+          MOBILE TOP BAR (visible on small screens)
+      ════════════════════════════════════════════════ */}
+      <div
+        className="mobile-topbar"
         style={{
-          background: `linear-gradient(135deg, ${ADMIN_C.magenta} 0%, ${ADMIN_C.magentaMed} 100%)`,
-          padding: "0 24px",
-          boxShadow: "0 2px 16px rgba(156,0,82,0.35)",
+          display: "none",
+          background: C.sidebarBg,
+          padding: "0 16px",
+          height: 52,
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
         }}
       >
-        <div
+        <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>
+          Eyram &amp; Loretta
+        </span>
+        <button
+          onClick={() => setSidebarOpen((o) => !o)}
           style={{
-            maxWidth: 1300,
-            margin: "0 auto",
+            background: "none",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            padding: 4,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            height: 64,
+            flexDirection: "column",
+            gap: 5,
+          }}
+          aria-label="Toggle menu"
+        >
+          <span style={{ display: "block", width: 22, height: 2, background: "white", borderRadius: 2 }} />
+          <span style={{ display: "block", width: 22, height: 2, background: "white", borderRadius: 2 }} />
+          <span style={{ display: "block", width: 22, height: 2, background: "white", borderRadius: 2 }} />
+        </button>
+      </div>
+
+      {/* ════════════════════════════════════════════════
+          BODY: sidebar + main
+      ════════════════════════════════════════════════ */}
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+
+        {/* ── Sidebar ── */}
+        <aside
+          className="sidebar"
+          style={{
+            width: 260,
+            background: C.sidebarBg,
+            display: "flex",
+            flexDirection: "column",
+            flexShrink: 0,
+            minHeight: "100vh",
           }}
         >
-          <div>
+          {/* Brand */}
+          <div style={{ padding: "28px 24px 20px" }}>
             <div
               style={{
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: 700,
                 color: "white",
-                fontFamily: "var(--font-playfair)",
+                fontFamily: "var(--font-playfair, Georgia, serif)",
                 letterSpacing: "-0.01em",
+                lineHeight: 1.2,
               }}
             >
               Eyram &amp; Loretta
-              <span style={{ color: "#E2B862", marginLeft: 8, fontSize: 13, fontWeight: 400 }}>
-                Wedding Admin
-              </span>
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>
-              Saturday, 2nd May 2026 · Elmina Beach Resort, Accra
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              Wedding Admin · 2 May 2026
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {/* Divider */}
+          <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0 16px 12px" }} />
+
+          {/* Nav items */}
+          <nav style={{ flex: 1, padding: "0 10px" }}>
+            {navItems.map((item) => {
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setTab(item.id); setSidebarOpen(false); }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    width: "100%",
+                    padding: "11px 14px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: active ? `rgba(156,0,82,0.6)` : "transparent",
+                    color: active ? "white" : "rgba(255,255,255,0.55)",
+                    fontSize: 14,
+                    fontWeight: active ? 600 : 400,
+                    cursor: "pointer",
+                    marginBottom: 2,
+                    textAlign: "left",
+                    transition: "background 0.15s, color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.count !== undefined && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: active ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
+                        color: active ? "white" : "rgba(255,255,255,0.5)",
+                        borderRadius: 20,
+                        padding: "2px 8px",
+                      }}
+                    >
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Bottom links */}
+          <div style={{ padding: "12px 10px 24px" }}>
+            <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0 6px 12px" }} />
             <a
               href="/"
               style={{
-                fontSize: 13,
-                color: "rgba(255,255,255,0.7)",
-                textDecoration: "none",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 10,
+                padding: "10px 14px",
+                borderRadius: 10,
+                color: "rgba(255,255,255,0.45)",
+                textDecoration: "none",
+                fontSize: 13,
+                marginBottom: 2,
               }}
             >
               <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M7.707 14.707a1 1 0 01-1.414 0L1.586 10H1a1 1 0 010-2h.586L6.293 3.293a1 1 0 011.414 1.414L4.414 8H14a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z"
-                  clipRule="evenodd"
-                />
+                <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L1.586 10H1a1 1 0 010-2h.586L6.293 3.293a1 1 0 011.414 1.414L4.414 8H14a1 1 0 110 2H4.414l3.293 3.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
               View RSVP page
             </a>
@@ -787,507 +1135,935 @@ export default function AdminPage() {
                 window.location.href = "/admin/login";
               }}
               style={{
-                fontSize: 13, color: "rgba(255,255,255,0.7)", background: "none",
-                border: "1px solid rgba(255,255,255,0.25)", borderRadius: 6,
-                padding: "5px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                width: "100%",
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: "transparent",
+                color: "rgba(255,255,255,0.45)",
+                fontSize: 13,
+                cursor: "pointer",
+                textAlign: "left",
               }}
             >
-              <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                <path d="M10 3a1 1 0 011 1v2h2a1 1 0 010 2h-2v2a1 1 0 01-1.707.707l-3-3a1 1 0 010-1.414l3-3A1 1 0 0110 3zM3 3a1 1 0 011-1h1a1 1 0 010 2H4v8h1a1 1 0 010 2H4a1 1 0 01-1-1V3z"/>
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                <path d="M10 3a1 1 0 011 1v2h2a1 1 0 010 2h-2v2a1 1 0 01-1.707.707l-3-3a1 1 0 010-1.414l3-3A1 1 0 0110 3zM3 3a1 1 0 011-1h1a1 1 0 010 2H4v8h1a1 1 0 010 2H4a1 1 0 01-1-1V3z" />
               </svg>
               Sign out
             </button>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      <div style={{ maxWidth: 1300, margin: "0 auto", padding: "28px 24px" }}>
-
-        {/* ── Error ── */}
-        {error && (
-          <div
-            style={{
-              background: "#FEE2E2",
-              color: "#991B1B",
-              borderRadius: 10,
-              padding: "12px 16px",
-              marginBottom: 20,
-              fontSize: 14,
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        {/* ── Toast ── */}
-        {toast && (
+        {/* ── Mobile sidebar overlay ── */}
+        {sidebarOpen && (
           <div
             style={{
               position: "fixed",
-              bottom: 24,
-              right: 24,
-              background: "#2D2226",
-              color: "white",
-              borderRadius: 10,
-              padding: "12px 20px",
-              fontSize: 14,
-              fontWeight: 500,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-              zIndex: 100,
-              animation: "fadeUp 0.3s ease-out",
+              inset: 0,
+              zIndex: 40,
+              display: "flex",
             }}
+            onClick={() => setSidebarOpen(false)}
           >
-            {toast}
-          </div>
-        )}
-
-        {/* ── Stats row ── */}
-        {!loading && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 16,
-              marginBottom: 28,
-            }}
-          >
-            <StatCard label="Total RSVPs" value={guests.length} accent={ADMIN_C.gold} />
-            <StatCard
-              label="Attending"
-              value={attending.length}
-              sub={`${totalGuests} people total`}
-              accent="#059669"
-            />
-            <StatCard label="Declined" value={declining.length} accent="#DC2626" />
-            <StatCard
-              label="Arriving Early"
-              value={arrivingEarly.length}
-              sub="Fri 1st May"
-              accent="#D4793A"
-            />
-            <StatCard
-              label="Need Accommodation"
-              value={needsAccom.length}
-              accent={ADMIN_C.magenta}
-            />
-            <StatCard
-              label="Reception Dinner"
-              value={stayingDinner.length}
-              accent="#7C3AED"
-            />
-          </div>
-        )}
-
-        {/* ── Tabs ── */}
-        <div
-          style={{
-            display: "flex",
-            gap: 0,
-            background: "white",
-            borderRadius: 12,
-            padding: 4,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            marginBottom: 24,
-            width: "fit-content",
-          }}
-        >
-          {(["guests", "accommodations"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: "9px 20px",
-                borderRadius: 9,
-                border: "none",
-                background: tab === t ? ADMIN_C.magenta : "transparent",
-                color: tab === t ? "white" : "#6B7280",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "background 0.15s, color 0.15s",
-                textTransform: "capitalize",
-              }}
-            >
-              {t === "guests" ? `Guests (${guests.length})` : `Accommodations (${accommodations.length})`}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Loading ── */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#A8A3A0", fontSize: 15 }}>
-            Loading…
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════
-            GUESTS TAB
-        ════════════════════════════════════════════════ */}
-        {!loading && tab === "guests" && (
-          <div>
-            {/* Filters */}
+            <div style={{ background: "rgba(0,0,0,0.5)", position: "absolute", inset: 0 }} />
             <div
               style={{
+                position: "relative",
+                zIndex: 1,
+                width: 260,
+                background: C.sidebarBg,
                 display: "flex",
-                gap: 12,
-                marginBottom: 16,
-                flexWrap: "wrap",
-                alignItems: "center",
+                flexDirection: "column",
+                minHeight: "100vh",
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Search */}
-              <input
-                type="search"
-                placeholder="Search by name, email or phone…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  border: "1.5px solid #E5E7EB",
-                  borderRadius: 10,
-                  padding: "9px 14px",
-                  fontSize: 14,
-                  color: "#2D2226",
-                  outline: "none",
-                  minWidth: 240,
-                  background: "white",
-                  fontFamily: "inherit",
-                }}
-              />
-
-              {/* Filter pills */}
-              <div style={{ display: "flex", gap: 6 }}>
-                {(["all", "yes", "no"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setGuestFilter(f)}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 20,
-                      border: "1.5px solid",
-                      borderColor: guestFilter === f ? ADMIN_C.magenta : "#E5E7EB",
-                      background: guestFilter === f ? ADMIN_C.magenta : "white",
-                      color: guestFilter === f ? "white" : "#6B7280",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {f === "all" ? "All" : f === "yes" ? "Attending" : "Declined"}
-                  </button>
-                ))}
-              </div>
-
-              <span style={{ fontSize: 13, color: "#A8A3A0", marginLeft: "auto" }}>
-                {filteredGuests.length} result{filteredGuests.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-
-            {/* Table */}
-            {filteredGuests.length === 0 ? (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: 16,
-                  padding: "48px 24px",
-                  textAlign: "center",
-                  color: "#A8A3A0",
-                  fontSize: 15,
-                }}
-              >
-                {guests.length === 0 ? "No RSVPs received yet." : "No results match your search."}
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: 16,
-                  overflow: "auto",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                }}
-              >
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
-                  <thead>
-                    <tr style={{ background: ADMIN_C.cream }}>
-                      {[
-                        "Guest",
-                        "Status",
-                        "Party",
-                        "Arrival",
-                        "Accommodation",
-                        "Dinner",
-                        "Dietary",
-                        "Message",
-                        "Submitted",
-                        "",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "12px 16px",
-                            textAlign: h === "Party" || h === "" ? "center" : "left",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: ADMIN_C.magenta,
-                            letterSpacing: "0.04em",
-                            textTransform: "uppercase",
-                            borderBottom: "2px solid rgba(200,150,12,0.2)",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredGuests.map((g) => (
-                      <GuestRow key={g.id} guest={g} onDelete={handleDeleteGuest} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════
-            ACCOMMODATIONS TAB
-        ════════════════════════════════════════════════ */}
-        {!loading && tab === "accommodations" && (
-          <div>
-            {/* Toolbar */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 20,
-              }}
-            >
-              <p style={{ fontSize: 14, color: "#6B7280" }}>
-                These room options are shown to guests when they RSVP with early arrival.
-              </p>
-              {!showForm && (
-                <button
-                  onClick={openAdd}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 20px",
-                    background: ADMIN_C.magenta,
-                    color: "white",
-                    border: "none",
-                    borderRadius: 10,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                    <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 010-2h4V3a1 1 0 011-1z" />
-                  </svg>
-                  Add Room
-                </button>
-              )}
-            </div>
-
-            {/* Add / Edit form */}
-            {showForm && (
-              <>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: ADMIN_C.magenta,
-                    marginBottom: 12,
-                    fontFamily: "var(--font-playfair)",
-                  }}
-                >
-                  {editingId ? "Edit Room" : "Add New Room"}
+              <div style={{ padding: "28px 24px 20px" }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "var(--font-playfair, Georgia, serif)" }}>
+                  Eyram &amp; Loretta
                 </div>
-                {formError && (
-                  <div
-                    style={{
-                      background: "#FEE2E2",
-                      color: "#991B1B",
-                      borderRadius: 8,
-                      padding: "10px 14px",
-                      fontSize: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {formError}
-                  </div>
-                )}
-                <AccommodationForm
-                  initial={formInitial}
-                  onSave={handleSaveAccommodation}
-                  onCancel={() => { setShowForm(false); setEditingId(null); }}
-                  saving={saving}
-                />
-              </>
-            )}
-
-            {/* Accommodations list */}
-            {accommodations.length === 0 && !showForm ? (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: 16,
-                  padding: "48px 24px",
-                  textAlign: "center",
-                  color: "#A8A3A0",
-                  fontSize: 15,
-                }}
-              >
-                No room options added yet. Click{" "}
-                <button
-                  onClick={openAdd}
-                  style={{ color: ADMIN_C.magenta, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 15 }}
-                >
-                  Add Room
-                </button>{" "}
-                to create your first option.
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+                  Wedding Admin · 2 May 2026
+                </div>
               </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 16,
-                }}
-              >
-                {accommodations.map((acc) => {
-                  const bookings = guests.filter((g) => g.accommodation_id === acc.id).length;
+              <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0 16px 12px" }} />
+              <nav style={{ flex: 1, padding: "0 10px" }}>
+                {navItems.map((item) => {
+                  const active = tab === item.id;
                   return (
-                    <div
-                      key={acc.id}
+                    <button
+                      key={item.id}
+                      onClick={() => { setTab(item.id); setSidebarOpen(false); }}
                       style={{
-                        background: "white",
-                        borderRadius: 16,
-                        padding: 20,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                        border: acc.available ? "1.5px solid #E5E7EB" : "1.5px dashed #E5E7EB",
-                        opacity: acc.available ? 1 : 0.7,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: active ? "rgba(156,0,82,0.6)" : "transparent",
+                        color: active ? "white" : "rgba(255,255,255,0.55)",
+                        fontSize: 14,
+                        fontWeight: active ? 600 : 400,
+                        cursor: "pointer",
+                        marginBottom: 2,
+                        textAlign: "left",
                       }}
                     >
-                      {/* Top row */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontSize: 17,
-                              fontWeight: 700,
-                              color: "#2D2226",
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            {acc.room_type}
-                          </div>
-                          <div style={{ fontSize: 13, color: "#A8A3A0", marginTop: 2 }}>
-                            {acc.hotel_name}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                          <div style={{ fontSize: 20, fontWeight: 700, color: ADMIN_C.gold }}>
-                            {formatPrice(acc.price_per_night, acc.currency)}
-                          </div>
-                          <div style={{ fontSize: 12, color: "#A8A3A0" }}>per night</div>
-                        </div>
-                      </div>
-
-                      {acc.description && (
-                        <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 10, lineHeight: 1.5 }}>
-                          {acc.description}
-                        </p>
+                      <span style={{ fontSize: 16 }}>{item.icon}</span>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {item.count !== undefined && (
+                        <span style={{ fontSize: 11, fontWeight: 700, background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", borderRadius: 20, padding: "2px 8px" }}>
+                          {item.count}
+                        </span>
                       )}
-
-                      {/* Meta row */}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                        <Badge color={acc.available ? "green" : "grey"}>
-                          {acc.available ? "Visible" : "Hidden"}
-                        </Badge>
-                        <Badge color="gold">
-                          Up to {acc.max_guests} {acc.max_guests === 1 ? "guest" : "guests"}
-                        </Badge>
-                        {bookings > 0 && (
-                          <Badge color="blue">
-                            {bookings} booking{bookings > 1 ? "s" : ""}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          onClick={() => openEdit(acc)}
-                          style={{
-                            flex: 1,
-                            padding: "8px 0",
-                            borderRadius: 8,
-                            border: "1.5px solid #E5E7EB",
-                            background: "white",
-                            color: "#374151",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleToggleAvailable(acc)}
-                          style={{
-                            flex: 1,
-                            padding: "8px 0",
-                            borderRadius: 8,
-                            border: "1.5px solid #E5E7EB",
-                            background: "white",
-                            color: acc.available ? "#D97706" : "#059669",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {acc.available ? "Hide" : "Show"}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAccommodation(acc.id)}
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            border: "1.5px solid #FEE2E2",
-                            background: "white",
-                            color: "#DC2626",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                          }}
-                          title="Delete room"
-                        >
-                          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                            <path
-                              fillRule="evenodd"
-                              d="M7 2a1 1 0 00-.894.553L5.382 4H3a1 1 0 000 2v8a2 2 0 002 2h6a2 2 0 002-2V6a1 1 0 000-2h-2.382l-.724-1.447A1 1 0 009 2H7zm0 2h2l.382.764A1 1 0 0010.382 6H5.618A1 1 0 006.618 4.764L7 4zM6 8a1 1 0 012 0v3a1 1 0 11-2 0V8zm3 0a1 1 0 012 0v3a1 1 0 11-2 0V8z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                    </button>
                   );
                 })}
+              </nav>
+            </div>
+          </div>
+        )}
+
+        {/* ── Main content ── */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+
+          {/* Top header bar */}
+          <div
+            style={{
+              background: "white",
+              borderBottom: "1px solid #F0D0E8",
+              padding: "0 28px",
+              height: 60,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#2D2226" }}>
+              {pageTitles[tab]}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={fetchAll}
+                disabled={loading}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 14px",
+                  borderRadius: 8,
+                  border: "1.5px solid #E5E7EB",
+                  background: "white",
+                  color: loading ? "#A8A3A0" : "#374151",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: loading ? "default" : "pointer",
+                }}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  width="13"
+                  height="13"
+                  fill="currentColor"
+                  style={{ animation: loading ? "spin 1s linear infinite" : "none" }}
+                >
+                  <path fillRule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.418A6 6 0 118 2v1z" clipRule="evenodd" />
+                  <path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z" />
+                </svg>
+                {loading ? "Loading…" : "Refresh"}
+              </button>
+              <button
+                onClick={async () => {
+                  await fetch("/api/auth/logout", { method: "POST" });
+                  window.location.href = "/admin/login";
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 14px",
+                  borderRadius: 8,
+                  border: "1.5px solid rgba(156,0,82,0.25)",
+                  background: C.cream,
+                  color: C.magenta,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable content area */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+
+            {/* Global error */}
+            {error && (
+              <div
+                style={{
+                  background: "#FEE2E2",
+                  color: "#991B1B",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                  marginBottom: 20,
+                  fontSize: 14,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {loading && (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "#A8A3A0", fontSize: 15 }}>
+                Loading…
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════
+                DASHBOARD TAB
+            ════════════════════════════════════════════ */}
+            {!loading && tab === "dashboard" && (
+              <div>
+                {/* Stats row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                    gap: 16,
+                    marginBottom: 28,
+                  }}
+                >
+                  <StatCard label="Total RSVPs"      value={guests.length}     accent={C.gold} />
+                  <StatCard label="Attending"         value={attending.length}  sub={`${totalGuests} people total`} accent="#059669" />
+                  <StatCard label="Declining"         value={declining.length}  accent="#DC2626" />
+                  <StatCard label="Total Guests"      value={totalGuests}       accent={C.magenta} />
+                  <StatCard
+                    label="Total Donations"
+                    value={formatPrice(totalDonations, "GHS")}
+                    accent={C.goldMed}
+                  />
+                </div>
+
+                {/* Charts row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                    gap: 20,
+                    marginBottom: 28,
+                  }}
+                >
+                  {/* Attendance bar chart */}
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      padding: "20px 24px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2226", marginBottom: 16 }}>
+                      RSVP Attendance
+                    </div>
+                    <AttendanceBarChart
+                      attending={attending.length}
+                      declining={declining.length}
+                    />
+                    <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#6B7280" }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: "#059669", display: "inline-block" }} />
+                        Attending
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#6B7280" }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: "#DC2626", display: "inline-block" }} />
+                        Declined
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Donations line chart */}
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      padding: "20px 24px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2226", marginBottom: 16 }}>
+                      Donations Over Time (GHS)
+                    </div>
+                    <DonationsLineChart donations={donations} />
+                  </div>
+                </div>
+
+                {/* Recent activity feed */}
+                <div
+                  style={{
+                    background: "white",
+                    borderRadius: 16,
+                    padding: "20px 24px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2226", marginBottom: 16 }}>
+                    Recent Activity
+                  </div>
+                  {activityItems.length === 0 ? (
+                    <div style={{ textAlign: "center", color: "#A8A3A0", padding: "24px 0", fontSize: 14 }}>
+                      No activity yet.
+                    </div>
+                  ) : (
+                    <div>
+                      {activityItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            padding: "12px 0",
+                            borderBottom: idx < activityItems.length - 1 ? "1px solid #F3F4F6" : "none",
+                          }}
+                        >
+                          {/* Icon */}
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 16,
+                              flexShrink: 0,
+                              background:
+                                item.kind === "rsvp"
+                                  ? (item.guest.attending === "yes" ? "#D1FAE5" : "#FEE2E2")
+                                  : "#FEF3C7",
+                            }}
+                          >
+                            {item.kind === "rsvp"
+                              ? (item.guest.attending === "yes" ? "✅" : "❌")
+                              : "💛"}
+                          </div>
+
+                          {/* Text */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {item.kind === "rsvp" ? (
+                              <>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: "#2D2226" }}>
+                                  {item.guest.full_name}
+                                </div>
+                                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                                  {item.guest.attending === "yes"
+                                    ? `RSVP'd attending · ${item.guest.guest_count} guest${item.guest.guest_count !== 1 ? "s" : ""}`
+                                    : "Declined invitation"}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: "#2D2226" }}>
+                                  {item.donation.donor_name ?? "Anonymous"}
+                                </div>
+                                <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                                  Donated {formatPrice(item.donation.amount, item.donation.currency)}
+                                  {item.donation.donor_network ? ` via ${item.donation.donor_network}` : ""}
+                                  {" · "}
+                                  <span
+                                    style={{
+                                      color:
+                                        item.donation.status === "confirmed"
+                                          ? "#059669"
+                                          : item.donation.status === "failed"
+                                          ? "#DC2626"
+                                          : C.gold,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {item.donation.status}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Time */}
+                          <div style={{ fontSize: 12, color: "#A8A3A0", whiteSpace: "nowrap" }}>
+                            {formatDate(item.ts)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════
+                RSVPS TAB
+            ════════════════════════════════════════════ */}
+            {!loading && tab === "rsvps" && (
+              <div>
+                {/* Filters */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    marginBottom: 16,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    type="search"
+                    placeholder="Search by name, email or phone…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: 10,
+                      padding: "9px 14px",
+                      fontSize: 14,
+                      color: "#2D2226",
+                      outline: "none",
+                      minWidth: 240,
+                      background: "white",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {(["all", "yes", "no"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setGuestFilter(f)}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: 20,
+                          border: "1.5px solid",
+                          borderColor: guestFilter === f ? C.magenta : "#E5E7EB",
+                          background: guestFilter === f ? C.magenta : "white",
+                          color: guestFilter === f ? "white" : "#6B7280",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {f === "all" ? "All" : f === "yes" ? "Attending" : "Declined"}
+                      </button>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 13, color: "#A8A3A0", marginLeft: "auto" }}>
+                    {filteredGuests.length} result{filteredGuests.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {filteredGuests.length === 0 ? (
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      color: "#A8A3A0",
+                      fontSize: 15,
+                    }}
+                  >
+                    {guests.length === 0 ? "No RSVPs received yet." : "No results match your search."}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      overflow: "auto",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+                      <thead>
+                        <tr style={{ background: C.cream }}>
+                          {[
+                            "Guest",
+                            "Status",
+                            "Party",
+                            "Arrival",
+                            "Accommodation",
+                            "Dinner",
+                            "Dietary",
+                            "Message",
+                            "Submitted",
+                            "",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: "12px 16px",
+                                textAlign: h === "Party" || h === "" ? "center" : "left",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: C.magenta,
+                                letterSpacing: "0.04em",
+                                textTransform: "uppercase",
+                                borderBottom: "2px solid rgba(200,150,12,0.2)",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredGuests.map((g) => (
+                          <GuestRow key={g.id} guest={g} onDelete={handleDeleteGuest} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════
+                DONATIONS TAB
+            ════════════════════════════════════════════ */}
+            {!loading && tab === "donations" && (
+              <div>
+                {/* Summary */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                    gap: 16,
+                    marginBottom: 24,
+                  }}
+                >
+                  <StatCard
+                    label="Total Donations"
+                    value={donations.length}
+                    accent={C.goldMed}
+                  />
+                  <StatCard
+                    label="Confirmed"
+                    value={donations.filter((d) => d.status === "confirmed").length}
+                    accent="#059669"
+                  />
+                  <StatCard
+                    label="Pending"
+                    value={donations.filter((d) => d.status === "pending").length}
+                    accent={C.gold}
+                  />
+                  <StatCard
+                    label="Total Amount (GHS)"
+                    value={formatPrice(totalDonations, "GHS")}
+                    sub="confirmed + pending"
+                    accent={C.magenta}
+                  />
+                </div>
+
+                {donations.length === 0 ? (
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      color: "#A8A3A0",
+                      fontSize: 15,
+                    }}
+                  >
+                    No donations recorded yet.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      overflow: "auto",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
+                      <thead>
+                        <tr style={{ background: C.cream }}>
+                          {["Date", "Donor", "Phone", "Network", "Amount", "Status"].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                padding: "12px 16px",
+                                textAlign: "left",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: C.magenta,
+                                letterSpacing: "0.04em",
+                                textTransform: "uppercase",
+                                borderBottom: "2px solid rgba(200,150,12,0.2)",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {donations.map((d) => (
+                          <tr key={d.id} style={{ background: "white" }}>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                fontSize: 13,
+                                color: "#A8A3A0",
+                                borderBottom: "1px solid #F3F4F6",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {formatDate(d.created_at)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                fontSize: 14,
+                                color: "#2D2226",
+                                borderBottom: "1px solid #F3F4F6",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {d.donor_name ?? (
+                                <span style={{ color: "#A8A3A0", fontWeight: 400 }}>Anonymous</span>
+                              )}
+                              <div style={{ fontSize: 11, color: "#A8A3A0", fontWeight: 400, marginTop: 1 }}>
+                                ref: {d.reference}
+                              </div>
+                            </td>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                fontSize: 13,
+                                color: "#6B7280",
+                                borderBottom: "1px solid #F3F4F6",
+                              }}
+                            >
+                              {d.donor_phone ?? <span style={{ color: "#D1D5DB" }}>—</span>}
+                            </td>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                fontSize: 13,
+                                color: "#6B7280",
+                                borderBottom: "1px solid #F3F4F6",
+                              }}
+                            >
+                              {d.donor_network ?? <span style={{ color: "#D1D5DB" }}>—</span>}
+                            </td>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                fontSize: 14,
+                                fontWeight: 700,
+                                color: C.gold,
+                                borderBottom: "1px solid #F3F4F6",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {formatPrice(d.amount, d.currency)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "14px 16px",
+                                borderBottom: "1px solid #F3F4F6",
+                              }}
+                            >
+                              <Badge
+                                color={
+                                  d.status === "confirmed"
+                                    ? "green"
+                                    : d.status === "failed"
+                                    ? "red"
+                                    : "gold"
+                                }
+                              >
+                                {d.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════
+                ACCOMMODATIONS TAB
+            ════════════════════════════════════════════ */}
+            {!loading && tab === "accommodations" && (
+              <div>
+                {/* Toolbar */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 20,
+                  }}
+                >
+                  <p style={{ fontSize: 14, color: "#6B7280" }}>
+                    These room options are shown to guests when they RSVP with early arrival.
+                  </p>
+                  {!showForm && (
+                    <button
+                      onClick={openAdd}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "10px 20px",
+                        background: C.magenta,
+                        color: "white",
+                        border: "none",
+                        borderRadius: 10,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                        <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 010-2h4V3a1 1 0 011-1z" />
+                      </svg>
+                      Add Room
+                    </button>
+                  )}
+                </div>
+
+                {/* Add / Edit form */}
+                {showForm && (
+                  <>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: C.magenta,
+                        marginBottom: 12,
+                        fontFamily: "var(--font-playfair, Georgia, serif)",
+                      }}
+                    >
+                      {editingId ? "Edit Room" : "Add New Room"}
+                    </div>
+                    {formError && (
+                      <div
+                        style={{
+                          background: "#FEE2E2",
+                          color: "#991B1B",
+                          borderRadius: 8,
+                          padding: "10px 14px",
+                          fontSize: 14,
+                          marginBottom: 12,
+                        }}
+                      >
+                        {formError}
+                      </div>
+                    )}
+                    <AccommodationForm
+                      initial={formInitial}
+                      onSave={handleSaveAccommodation}
+                      onCancel={() => { setShowForm(false); setEditingId(null); }}
+                      saving={saving}
+                    />
+                  </>
+                )}
+
+                {/* Accommodations list */}
+                {accommodations.length === 0 && !showForm ? (
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 16,
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      color: "#A8A3A0",
+                      fontSize: 15,
+                    }}
+                  >
+                    No room options added yet.{" "}
+                    <button
+                      onClick={openAdd}
+                      style={{ color: C.magenta, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 15 }}
+                    >
+                      Add Room
+                    </button>{" "}
+                    to create your first option.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    {accommodations.map((acc) => {
+                      const bookings = guests.filter((g) => g.accommodation_id === acc.id).length;
+                      return (
+                        <div
+                          key={acc.id}
+                          style={{
+                            background: "white",
+                            borderRadius: 16,
+                            padding: 20,
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                            border: acc.available ? "1.5px solid #E5E7EB" : "1.5px dashed #E5E7EB",
+                            opacity: acc.available ? 1 : 0.7,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 17, fontWeight: 700, color: "#2D2226", lineHeight: 1.2 }}>
+                                {acc.room_type}
+                              </div>
+                              <div style={{ fontSize: 13, color: "#A8A3A0", marginTop: 2 }}>
+                                {acc.hotel_name}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                              <div style={{ fontSize: 20, fontWeight: 700, color: C.gold }}>
+                                {formatPrice(acc.price_per_night, acc.currency)}
+                              </div>
+                              <div style={{ fontSize: 12, color: "#A8A3A0" }}>per night</div>
+                            </div>
+                          </div>
+
+                          {acc.description && (
+                            <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 10, lineHeight: 1.5 }}>
+                              {acc.description}
+                            </p>
+                          )}
+
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                            <Badge color={acc.available ? "green" : "grey"}>
+                              {acc.available ? "Visible" : "Hidden"}
+                            </Badge>
+                            <Badge color="gold">
+                              Up to {acc.max_guests} {acc.max_guests === 1 ? "guest" : "guests"}
+                            </Badge>
+                            {bookings > 0 && (
+                              <Badge color="blue">
+                                {bookings} booking{bookings > 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => openEdit(acc)}
+                              style={{
+                                flex: 1,
+                                padding: "8px 0",
+                                borderRadius: 8,
+                                border: "1.5px solid #E5E7EB",
+                                background: "white",
+                                color: "#374151",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleToggleAvailable(acc)}
+                              style={{
+                                flex: 1,
+                                padding: "8px 0",
+                                borderRadius: 8,
+                                border: "1.5px solid #E5E7EB",
+                                background: "white",
+                                color: acc.available ? "#D97706" : "#059669",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {acc.available ? "Hide" : "Show"}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAccommodation(acc.id)}
+                              style={{
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                border: "1.5px solid #FEE2E2",
+                                background: "white",
+                                color: "#DC2626",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                              title="Delete room"
+                            >
+                              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M7 2a1 1 0 00-.894.553L5.382 4H3a1 1 0 000 2v8a2 2 0 002 2h6a2 2 0 002-2V6a1 1 0 000-2h-2.382l-.724-1.447A1 1 0 009 2H7zm0 2h2l.382.764A1 1 0 0010.382 6H5.618A1 1 0 006.618 4.764L7 4zM6 8a1 1 0 012 0v3a1 1 0 11-2 0V8zm3 0a1 1 0 012 0v3a1 1 0 11-2 0V8z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Responsive grid fix for accommodation form */}
+      {/* ── Toast notification ── */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            background: "#2D2226",
+            color: "white",
+            borderRadius: 10,
+            padding: "12px 20px",
+            fontSize: 14,
+            fontWeight: 500,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            zIndex: 200,
+          }}
+        >
+          {toast}
+        </div>
+      )}
+
+      {/* ── Global styles ── */}
       <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+          .sidebar      { display: none !important; }
+          .mobile-topbar { display: flex !important; }
+        }
         @media (max-width: 560px) {
           .form-grid { grid-template-columns: 1fr !important; }
         }

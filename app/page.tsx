@@ -540,6 +540,236 @@ function ProgressDots({ steps, current }: { steps: string[]; current: number }) 
 }
 
 /* ═══════════════════════════════════════════
+   DONATION MODAL
+   ═══════════════════════════════════════════ */
+const PRESETS = [100, 500, 1000, 2000];
+const NETWORKS = [
+  { value: "MTN", label: "MTN MoMo" },
+  { value: "VODAFONE", label: "Telecel Cash" },
+  { value: "AIRTELTIGO", label: "AT Money" },
+];
+
+function DonationModal({ onClose }: { onClose: () => void }) {
+  const [method, setMethod] = useState<"momo" | "card" | "manual">("momo");
+  const [amount, setAmount] = useState<number | null>(100);
+  const [custom, setCustom] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [momoPhone, setMomoPhone] = useState("");
+  const [momoNetwork, setMomoNetwork] = useState("MTN");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pendingMsg, setPendingMsg] = useState("");
+
+  const finalAmount = custom ? Number(custom) : amount;
+
+  async function handlePay() {
+    if (!finalAmount || finalAmount < 1) { setError("Please choose or enter a valid amount."); return; }
+    if (method === "momo" && !momoPhone.trim()) { setError("Please enter your MoMo phone number."); return; }
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/payment/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: finalAmount,
+          name: name || undefined,
+          email: email || undefined,
+          paymentMethod: method === "momo" ? "mobile_money" : "card",
+          momoPhone: method === "momo" ? momoPhone : undefined,
+          momoNetwork: method === "momo" ? momoNetwork : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.pending) {
+        setPendingMsg(data.message ?? "Please authorise the payment on your phone.");
+        setLoading(false);
+      } else {
+        setError(data.error ?? "Could not start payment. Please try a manual option below.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Network error. Please try again or use a manual option.");
+      setLoading(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", fontSize: 15, borderRadius: 10,
+    border: "2px solid #F0D0E8", outline: "none", fontFamily: font.body,
+    color: C.charcoal, background: "#FFFBF8", transition: "border-color 0.2s",
+  };
+  const focus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = C.goldRich; };
+  const blur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = "#F0D0E8"; };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(30,12,22,0.72)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      animation: "fadeIn 0.2s ease-out",
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        width: "100%", maxWidth: 460, background: "#fff", borderRadius: 24, overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.35)", animation: "scaleIn 0.3s ease-out",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ height: 6, background: `linear-gradient(90deg, ${C.magDeep}, ${C.magBright}, ${C.goldRich}, ${C.goldBright}, ${C.magDeep})`, backgroundSize: "300% 100%" }} />
+
+        <div style={{ padding: "32px 28px 36px" }}>
+          {/* Pending / awaiting phone approval */}
+          {pendingMsg ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 52, marginBottom: 16 }}>📱</div>
+              <h2 style={{ fontFamily: font.heading, fontSize: 24, fontWeight: 700, color: C.magDeep, margin: "0 0 12px" }}>Check Your Phone</h2>
+              <p style={{ fontSize: 15, color: C.silver, lineHeight: 1.65, marginBottom: 28 }}>{pendingMsg}</p>
+              <div style={{ background: "#FFF5FA", borderRadius: 12, padding: "14px 18px", marginBottom: 28, fontSize: 14, color: C.goldRich, fontWeight: 600 }}>
+                GHS {finalAmount?.toLocaleString()} · {momoNetwork} · {momoPhone}
+              </div>
+              <button onClick={onClose}
+                style={{
+                  width: "100%", padding: "14px", fontSize: 15, fontWeight: 700, fontFamily: font.body,
+                  color: "#fff", background: `linear-gradient(135deg, ${C.magDeep}, ${C.magMed})`,
+                  border: "none", borderRadius: 12, cursor: "pointer",
+                  boxShadow: `0 4px 20px rgba(156,0,82,0.3)`,
+                }}>
+                Done ✓
+              </button>
+            </div>
+          ) : (
+          <>
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontFamily: font.heading, fontSize: 26, fontWeight: 700, color: C.magDeep, margin: 0 }}>Send a Gift 💛</h2>
+              <p style={{ fontSize: 14, color: C.silver, marginTop: 4 }}>Support Eyram &amp; Loretta on their big day</p>
+            </div>
+            <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.silver, lineHeight: 1, padding: 4 }}>×</button>
+          </div>
+
+          {/* Payment method tabs */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, background: "#FFF0F8", borderRadius: 12, padding: 4 }}>
+            {(["momo", "card", "manual"] as const).map((m) => (
+              <button key={m} onClick={() => { if (m !== "card") { setMethod(m); setError(""); } }}
+                style={{
+                  flex: 1, padding: "9px 4px", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                  fontFamily: font.body, cursor: "pointer", transition: "all 0.2s", border: "none",
+                  background: method === m ? C.magDeep : "transparent",
+                  color: method === m ? "#fff" : C.silver,
+                  opacity: m === "card" ? 0.55 : 1,
+                }}>
+                {m === "momo" ? "📱 MoMo" : m === "card" ? "💳 Card (soon)" : "🏦 Bank"}
+              </button>
+            ))}
+          </div>
+
+          {/* Amount — shown for momo and card */}
+          {method !== "manual" && (
+            <>
+              <p style={{ fontSize: 13, fontWeight: 600, color: C.magDeep, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Amount (GHS)</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
+                {PRESETS.map((p) => (
+                  <button key={p} onClick={() => { setAmount(p); setCustom(""); }}
+                    style={{
+                      padding: "10px 4px", borderRadius: 10, fontSize: 15, fontWeight: 700,
+                      fontFamily: font.body, cursor: "pointer", transition: "all 0.2s",
+                      border: `2px solid ${amount === p && !custom ? C.magDeep : "#F0D0E8"}`,
+                      background: amount === p && !custom ? C.magDeep : "#FFFBF8",
+                      color: amount === p && !custom ? "#fff" : C.charcoal,
+                    }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <input type="number" placeholder="Custom amount" value={custom}
+                onChange={(e) => { setCustom(e.target.value); setAmount(null); }} min={1}
+                style={{ ...inputStyle, marginBottom: 16 }} onFocus={focus} onBlur={blur}
+              />
+            </>
+          )}
+
+          {/* MoMo fields */}
+          {method === "momo" && (
+            <>
+              <select value={momoNetwork} onChange={(e) => setMomoNetwork(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 10 }} onFocus={focus} onBlur={blur}>
+                {NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+              </select>
+              <input type="tel" placeholder="MoMo phone number (e.g. 0241234567)" value={momoPhone}
+                onChange={(e) => setMomoPhone(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 10 }} onFocus={focus} onBlur={blur}
+              />
+              <input type="text" placeholder="Your name (optional)" value={name}
+                onChange={(e) => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} onFocus={focus} onBlur={blur}
+              />
+            </>
+          )}
+
+          {/* Card fields */}
+          {method === "card" && (
+            <>
+              <input type="text" placeholder="Your name (optional)" value={name}
+                onChange={(e) => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 10 }} onFocus={focus} onBlur={blur}
+              />
+              <input type="email" placeholder="Email for receipt (optional)" value={email}
+                onChange={(e) => setEmail(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} onFocus={focus} onBlur={blur}
+              />
+            </>
+          )}
+
+          {/* Manual bank details */}
+          {method === "manual" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+              <div style={{ background: "#FFF5FA", borderRadius: 12, padding: "16px 18px", border: "1px solid #F0D0E8" }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.magDeep, marginBottom: 8 }}>📱 Mobile Money</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: C.charcoal, letterSpacing: "0.05em" }}>0241837002</p>
+                <p style={{ fontSize: 13, color: C.silver, marginTop: 2 }}>Any network accepted</p>
+              </div>
+              <div style={{ background: "#FFF5FA", borderRadius: 12, padding: "16px 18px", border: "1px solid #F0D0E8" }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.magDeep, marginBottom: 8 }}>🏦 GT Bank</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: C.charcoal }}>1602001015428</p>
+                <p style={{ fontSize: 13, color: C.silver, marginTop: 4 }}>Branch: Ho (602)</p>
+                <p style={{ fontSize: 13, color: C.silver }}>SWIFT: GTBIGHAC</p>
+              </div>
+            </div>
+          )}
+
+          {error && <p style={{ fontSize: 14, color: C.magBright, marginBottom: 12, textAlign: "center" }}>{error}</p>}
+
+          {/* Pay / close button */}
+          {method !== "manual" ? (
+            <button onClick={handlePay} disabled={loading}
+              style={{
+                width: "100%", padding: "15px", fontSize: 15, fontWeight: 700, fontFamily: font.body,
+                color: loading ? "#B8A8B0" : "#fff", letterSpacing: "0.08em", textTransform: "uppercase",
+                background: loading ? "#E8DEE3" : `linear-gradient(135deg, ${C.magDeep}, ${C.magMed})`,
+                border: "none", borderRadius: 12, cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: loading ? "none" : `0 4px 20px rgba(156,0,82,0.3)`,
+                transition: "all 0.2s",
+              }}>
+              {loading ? "Processing…" : `✦ Give${finalAmount && finalAmount > 0 ? ` GHS ${finalAmount}` : ""} ✦`}
+            </button>
+          ) : (
+            <button onClick={onClose}
+              style={{
+                width: "100%", padding: "15px", fontSize: 15, fontWeight: 700, fontFamily: font.body,
+                color: C.magDeep, letterSpacing: "0.08em", textTransform: "uppercase",
+                background: "#FFF0F8", border: `2px solid ${C.magPale}`, borderRadius: 12, cursor: "pointer",
+              }}>
+              Done
+            </button>
+          )}
+          </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════ */
 export default function RSVPPage() {
@@ -554,6 +784,7 @@ export default function RSVPPage() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [showDonation, setShowDonation] = useState(false);
   const formRef = useRef<HTMLElement>(null);
 
   useEffect(() => { setTimeout(() => setVisible(true), 150); }, []);
@@ -633,6 +864,7 @@ export default function RSVPPage() {
     <div style={{ minHeight: "100vh", backgroundColor: C.warmWhite, fontFamily: font.body, color: C.charcoal, overflowX: "hidden" }}>
       <style>{GLOBAL_CSS}</style>
       {showConfetti && <Confetti />}
+      {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
       <KenteStrip />
 
       {/* ────── HERO ────── */}
@@ -685,7 +917,7 @@ export default function RSVPPage() {
               </div>
 
               {/* Event card */}
-              <div style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: `0 4px 30px rgba(200,150,12,0.08)`, maxWidth: 480, margin: "0 auto" }}>
+              <div style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: `0 4px 30px rgba(200,150,12,0.08)`, maxWidth: 480, margin: "0 auto 24px" }}>
                 <div style={{ height: 6, background: `linear-gradient(90deg, ${C.goldRich}, ${C.goldBright}, ${C.goldMed})` }} />
                 <div style={{ padding: "24px 28px", textAlign: "center" }}>
                   <p style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.2em", color: C.silver, marginBottom: 12 }}>Event Details</p>
@@ -694,6 +926,22 @@ export default function RSVPPage() {
                   <p style={{ fontSize: 15, color: C.silver, marginTop: 2 }}>Ceremony begins at 10:00 AM</p>
                 </div>
               </div>
+
+              {/* Donation CTA on confirmation */}
+              <button
+                onClick={() => setShowDonation(true)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 10,
+                  padding: "16px 44px", fontSize: 16, fontWeight: 700, fontFamily: font.body,
+                  color: "#fff", background: `linear-gradient(135deg, ${C.goldRich}, ${C.goldMed})`,
+                  border: "none", borderRadius: 60, cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase",
+                  boxShadow: `0 4px 24px rgba(200,150,12,0.3)`, transition: "all 0.3s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 32px rgba(200,150,12,0.4)`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = `0 4px 24px rgba(200,150,12,0.3)`; }}
+              >
+                💛 Send a Wedding Gift
+              </button>
             </div>
           ) : (
             /* ── HERO CONTENT ── */
@@ -740,20 +988,36 @@ export default function RSVPPage() {
                 <span>✦</span><span>✦</span><span>✦</span>
               </div>
 
-              <button
-                onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth" })}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  padding: "18px 52px", fontSize: 17, fontWeight: 700, fontFamily: font.body,
-                  color: "#fff", background: `linear-gradient(135deg, ${C.magDeep}, ${C.magMed})`,
-                  border: "none", borderRadius: 60, cursor: "pointer", letterSpacing: "0.12em", textTransform: "uppercase",
-                  boxShadow: `0 4px 28px rgba(156,0,82,0.25)`, position: "relative", overflow: "hidden", transition: "all 0.3s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 36px rgba(156,0,82,0.35)`; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 4px 28px rgba(156,0,82,0.25)`; e.currentTarget.style.transform = "none"; }}
-              >
-                ✦ RSVP Now ✦
-              </button>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center" }}>
+                <button
+                  onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth" })}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    padding: "18px 52px", fontSize: 17, fontWeight: 700, fontFamily: font.body,
+                    color: "#fff", background: `linear-gradient(135deg, ${C.magDeep}, ${C.magMed})`,
+                    border: "none", borderRadius: 60, cursor: "pointer", letterSpacing: "0.12em", textTransform: "uppercase",
+                    boxShadow: `0 4px 28px rgba(156,0,82,0.25)`, position: "relative", overflow: "hidden", transition: "all 0.3s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 36px rgba(156,0,82,0.35)`; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 4px 28px rgba(156,0,82,0.25)`; e.currentTarget.style.transform = "none"; }}
+                >
+                  ✦ RSVP Now ✦
+                </button>
+                <button
+                  onClick={() => setShowDonation(true)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    padding: "18px 40px", fontSize: 17, fontWeight: 700, fontFamily: font.body,
+                    color: C.goldRich, background: "transparent",
+                    border: `2px solid ${C.goldRich}`, borderRadius: 60, cursor: "pointer",
+                    letterSpacing: "0.12em", textTransform: "uppercase", transition: "all 0.3s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.goldRich; e.currentTarget.style.color = "#fff"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.goldRich; e.currentTarget.style.transform = "none"; }}
+                >
+                  💛 Send a Gift
+                </button>
+              </div>
             </>
           )}
         </div>
