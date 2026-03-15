@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${sourceSerif.variable}`}>
+      <body className={`${playfair.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>
