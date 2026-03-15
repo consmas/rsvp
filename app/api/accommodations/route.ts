@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const created = await db.execute({
       sql: "SELECT * FROM accommodations WHERE id = ?",
-      args: [insert.lastInsertRowid],
+      args: [Number(insert.lastInsertRowid)],
     });
 
     return NextResponse.json({ success: true, accommodation: created.rows[0] }, { status: 201 });
