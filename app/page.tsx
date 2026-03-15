@@ -117,6 +117,69 @@ const GLOBAL_CSS = `
   75% { transform: translateY(-40px) translateX(20px) rotate(135deg); opacity:0.4; }
   100% { transform: translateY(0) translateX(0) rotate(180deg); opacity:0.7; }
 }
+@keyframes floatBride {
+  0%,100% { transform: translateY(0px) translateX(0px) rotate(-1.5deg); }
+  18%  { transform: translateY(-22px) translateX(7px)  rotate(0.8deg);  }
+  38%  { transform: translateY(-9px)  translateX(-4px) rotate(-2.5deg); }
+  58%  { transform: translateY(-28px) translateX(10px) rotate(1.2deg);  }
+  78%  { transform: translateY(-6px)  translateX(-7px) rotate(-0.6deg); }
+}
+@keyframes floatGroom {
+  0%,100% { transform: translateY(0px) translateX(0px) rotate(1.5deg);  }
+  15%  { transform: translateY(-18px) translateX(-8px) rotate(-0.8deg); }
+  35%  { transform: translateY(-28px) translateX(5px)  rotate(2.2deg);  }
+  55%  { transform: translateY(-10px) translateX(-5px) rotate(-1.4deg); }
+  75%  { transform: translateY(-24px) translateX(9px)  rotate(0.7deg);  }
+}
+@keyframes glowOrb {
+  0%,100% { opacity: 0.14; transform: scale(1);    }
+  50%     { opacity: 0.28; transform: scale(1.12); }
+}
+@keyframes heroEntrance {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0px)  scale(1);    }
+}
+@keyframes driftStar {
+  0%   { opacity: 0; transform: translateY(0px)  scale(0.4) rotate(0deg);   }
+  30%  { opacity: 1; }
+  70%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-60px) scale(1.2) rotate(360deg); }
+}
+
+/* ── corner roaming: couple starts bottom-left, counter-clockwise ── */
+@keyframes roamC1 {
+  0%   { transform:translate(0,0) rotate(0deg);            animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  17%  { transform:translate(0,calc(140px - 100vh)) rotate(-3deg); animation-timing-function:linear; }
+  25%  { transform:translate(0,calc(140px - 100vh)) rotate(0deg);  animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  42%  { transform:translate(calc(100vw - 210px),calc(140px - 100vh)) rotate(3deg);  animation-timing-function:linear; }
+  50%  { transform:translate(calc(100vw - 210px),calc(140px - 100vh)) rotate(0deg);  animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  67%  { transform:translate(calc(100vw - 210px),0) rotate(-3deg); animation-timing-function:linear; }
+  75%  { transform:translate(calc(100vw - 210px),0) rotate(0deg);  animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  92%  { transform:translate(0,0) rotate(3deg);             animation-timing-function:linear; }
+  100% { transform:translate(0,0) rotate(0deg); }
+}
+
+/* ── corner roaming: charm starts top-right, clockwise ── */
+@keyframes roamC2 {
+  0%   { transform:translate(0,0);                                       animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  17%  { transform:translate(0,calc(100vh - 158px));                     animation-timing-function:linear; }
+  25%  { transform:translate(0,calc(100vh - 158px));                     animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  42%  { transform:translate(calc(160px - 100vw),calc(100vh - 158px));   animation-timing-function:linear; }
+  50%  { transform:translate(calc(160px - 100vw),calc(100vh - 158px));   animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  67%  { transform:translate(calc(160px - 100vw),0);                     animation-timing-function:linear; }
+  75%  { transform:translate(calc(160px - 100vw),0);                     animation-timing-function:cubic-bezier(.4,0,.2,1); }
+  92%  { transform:translate(0,0);                                       animation-timing-function:linear; }
+  100% { transform:translate(0,0); }
+}
+
+/* ── charm inner spin ── */
+@keyframes charmSpin {
+  0%   { transform:rotate(0deg)   scale(1); }
+  45%  { transform:rotate(170deg) scale(1.08); }
+  50%  { transform:rotate(180deg) scale(1.08); }
+  95%  { transform:rotate(350deg) scale(1); }
+  100% { transform:rotate(360deg) scale(1); }
+}
 `;
 
 /* ═══════════════════════════════════════════
@@ -248,6 +311,312 @@ function AdinkraOdo({ size = 40, color = C.goldRich }: { size?: number; color?: 
       <path d="M25 8 C34 8, 42 16, 42 25 C42 34, 34 42, 25 42" stroke={color} strokeWidth="1.5" fill="none" opacity="0.4" />
       <circle cx="25" cy="25" r="3.5" fill={color} opacity="0.5" />
     </svg>
+  );
+}
+
+/* ── Wedding couple SVG ── */
+function ChibiCouple() {
+  return (
+    <svg
+      style={{ width: "min(46vw, 190px)", height: "auto", display: "block" }}
+      viewBox="0 0 900 520"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+
+      <defs>
+        <linearGradient id="cplBgGlow" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#FFF7D6"/>
+          <stop offset="100%" stopColor="#FFE08A"/>
+        </linearGradient>
+        <linearGradient id="cplSuit" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#2A2E3D"/>
+          <stop offset="100%" stopColor="#151826"/>
+        </linearGradient>
+        <linearGradient id="cplDress" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#FFFFFF"/>
+          <stop offset="100%" stopColor="#F2F4FA"/>
+        </linearGradient>
+        <linearGradient id="cplSkinM" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#A85D35"/>
+          <stop offset="100%" stopColor="#8B4C2A"/>
+        </linearGradient>
+        <linearGradient id="cplSkinF" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#B7663E"/>
+          <stop offset="100%" stopColor="#9A5632"/>
+        </linearGradient>
+        <filter id="cplShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="12" stdDeviation="14" floodColor="#000000" floodOpacity="0.12"/>
+        </filter>
+        <style>{`
+          .cpl-main { animation: cplMain 5.6s ease-in-out infinite; transform-origin: center; }
+          .cpl-groom { animation: cplGroom 4.8s ease-in-out infinite; transform-origin: 250px 270px; }
+          .cpl-bride { animation: cplBride 5.2s ease-in-out infinite; transform-origin: 625px 270px; }
+          .cpl-spark { animation: cplSpark 2.4s ease-in-out infinite; }
+          .cpl-spark.d1 { animation-delay: 0.3s; }
+          .cpl-spark.d2 { animation-delay: 0.8s; }
+          .cpl-spark.d3 { animation-delay: 1.2s; }
+          .cpl-spark.d4 { animation-delay: 1.7s; }
+          .cpl-shL { animation: cplShL 4.8s ease-in-out infinite; transform-origin: 210px 470px; }
+          .cpl-shR { animation: cplShR 5.2s ease-in-out infinite; transform-origin: 660px 475px; }
+          @keyframes cplMain  { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-10px)} }
+          @keyframes cplGroom { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-16px) rotate(1deg)} }
+          @keyframes cplBride { 0%,100%{transform:translateY(0) rotate(1deg)}  50%{transform:translateY(-20px) rotate(-1deg)} }
+          @keyframes cplSpark { 0%,100%{opacity:.55;transform:scale(.95)} 50%{opacity:1;transform:scale(1.15)} }
+          @keyframes cplShL   { 0%,100%{transform:scaleX(1);opacity:.18} 50%{transform:scaleX(.9);opacity:.1} }
+          @keyframes cplShR   { 0%,100%{transform:scaleX(1);opacity:.18} 50%{transform:scaleX(.88);opacity:.1} }
+        `}</style>
+      </defs>
+
+      <g className="cpl-main">
+        <circle cx="450" cy="80" r="22" fill="url(#cplBgGlow)" opacity="0.95"/>
+        <g className="cpl-spark">
+          <path d="M126 128L132 144L148 150L132 156L126 172L120 156L104 150L120 144L126 128Z" fill="#F6C453"/>
+        </g>
+        <g className="cpl-spark d1">
+          <path d="M208 92L214 104L226 110L214 116L208 128L202 116L190 110L202 104L208 92Z" fill="#F6C453"/>
+        </g>
+        <g className="cpl-spark d2">
+          <path d="M352 62L358 74L370 80L358 86L352 98L346 86L334 80L346 74L352 62Z" fill="#F6C453"/>
+        </g>
+        <g className="cpl-spark d3">
+          <path d="M716 112L722 128L738 134L722 140L716 156L710 140L694 134L710 128L716 112Z" fill="#F6C453"/>
+        </g>
+        <g className="cpl-spark d4">
+          <path d="M798 84L804 96L816 102L804 108L798 120L792 108L780 102L792 96L798 84Z" fill="#F6C453"/>
+        </g>
+
+        <ellipse className="cpl-shL" cx="210" cy="470" rx="88" ry="18" fill="#7580A4" opacity="0.18"/>
+        <ellipse className="cpl-shR" cx="660" cy="475" rx="96" ry="18" fill="#7580A4" opacity="0.18"/>
+
+        {/* ── GROOM ── */}
+        <g className="cpl-groom" filter="url(#cplShadow)">
+          <path d="M196 328C212 326 226 326 242 328L230 408C228 425 217 438 201 440C186 442 176 432 178 416L196 328Z" fill="url(#cplSuit)"/>
+          <path d="M244 328C261 327 276 329 290 334L282 412C280 431 268 448 250 449C235 450 225 438 227 420L244 328Z" fill="url(#cplSuit)"/>
+          <path d="M170 438C183 433 199 432 214 435C221 436 224 444 220 450C212 461 190 462 172 456C166 454 164 442 170 438Z" fill="#1A1C26"/>
+          <path d="M234 448C248 442 266 442 282 446C289 448 291 456 286 461C278 469 257 469 239 465C232 463 229 452 234 448Z" fill="#1A1C26"/>
+          <path d="M182 188C208 170 265 169 294 188L314 294C316 309 306 322 291 322H184C169 322 158 309 160 294L182 188Z" fill="url(#cplSuit)"/>
+          <path d="M216 196H259C271 196 281 206 281 219V312H194V219C194 206 204 196 216 196Z" fill="#1D2130"/>
+          <circle cx="238" cy="230" r="4" fill="#0E1119"/>
+          <circle cx="238" cy="254" r="4" fill="#0E1119"/>
+          <circle cx="238" cy="278" r="4" fill="#0E1119"/>
+          <path d="M215 190C222 182 253 182 260 190L253 220H222L215 190Z" fill="#FFFFFF"/>
+          <path d="M182 188L222 214L210 266L176 248L182 188Z" fill="#111522"/>
+          <path d="M294 188L253 214L266 266L300 248L294 188Z" fill="#111522"/>
+          <path d="M222 191L238 212L253 191L246 182H229L222 191Z" fill="#FFFFFF"/>
+          <path d="M226 212L214 206C208 203 202 210 205 216L210 226L226 220V212Z" fill="#0F1015"/>
+          <path d="M250 212L262 206C268 203 274 210 271 216L266 226L250 220V212Z" fill="#0F1015"/>
+          <ellipse cx="238" cy="216" rx="8" ry="6" fill="#0A0B10"/>
+          <path d="M167 209C145 217 128 234 116 258C111 268 116 281 126 284L152 291L181 243L167 209Z" fill="url(#cplSuit)"/>
+          <path d="M308 209C330 217 347 234 359 258C364 268 359 281 349 284L323 291L294 243L308 209Z" fill="url(#cplSuit)"/>
+          <circle cx="111" cy="267" r="18" fill="url(#cplSkinM)"/>
+          <circle cx="364" cy="267" r="18" fill="url(#cplSkinM)"/>
+          <rect x="225" y="160" width="26" height="24" rx="10" fill="url(#cplSkinM)"/>
+          <circle cx="238" cy="121" r="54" fill="url(#cplSkinM)"/>
+          <circle cx="186" cy="127" r="10" fill="url(#cplSkinM)"/>
+          <circle cx="290" cy="127" r="10" fill="url(#cplSkinM)"/>
+          <path d="M187 120C188 86 209 66 239 66C270 66 291 87 289 118C279 98 258 92 238 92C217 92 198 100 187 120Z" fill="#171515"/>
+          <path d="M193 101C209 78 266 77 282 100C265 88 211 88 193 101Z" fill="#1D1B1B"/>
+          <path d="M202 141C206 167 220 182 238 182C255 182 270 167 274 141C264 161 253 170 238 170C222 170 210 161 202 141Z" fill="#1B1716"/>
+          <ellipse cx="218" cy="121" rx="8" ry="10" fill="#FFFFFF"/>
+          <ellipse cx="257" cy="121" rx="8" ry="10" fill="#FFFFFF"/>
+          <circle cx="218" cy="123" r="5" fill="#161616"/>
+          <circle cx="257" cy="123" r="5" fill="#161616"/>
+          <circle cx="220" cy="121" r="1.7" fill="#FFFFFF"/>
+          <circle cx="259" cy="121" r="1.7" fill="#FFFFFF"/>
+          <path d="M207 104C214 100 222 99 229 101" stroke="#1E1715" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M247 101C254 99 262 100 269 104" stroke="#1E1715" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M238 127C234 137 235 145 240 149" stroke="#7A482A" strokeWidth="3.2" strokeLinecap="round"/>
+          <path d="M220 154C228 162 247 162 256 153" stroke="#6E3C25" strokeWidth="4" strokeLinecap="round"/>
+          <circle cx="292" cy="214" r="12" fill="#F6D95D"/>
+          <circle cx="292" cy="214" r="7"  fill="#FFF4B0"/>
+          <path d="M301 220L313 232" stroke="#6BAA55" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M299 224L306 234" stroke="#6BAA55" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M282 239L295 235L297 248L284 245L282 239Z" fill="#FFFFFF"/>
+        </g>
+
+        {/* ── BRIDE ── */}
+        <g className="cpl-bride" filter="url(#cplShadow)">
+          <path d="M578 282C606 250 653 245 687 272C709 290 718 321 716 360C713 411 676 445 626 445C576 445 536 410 534 360C533 330 547 302 578 282Z" fill="url(#cplDress)"/>
+          <path d="M596 296C584 327 582 355 590 390" stroke="#E2E6F0" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M628 286C621 327 621 370 629 418" stroke="#E2E6F0" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M661 295C671 326 674 356 668 391" stroke="#E2E6F0" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M562 397C575 388 588 392 598 404" stroke="#D9DEEA" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M646 410C656 400 672 399 683 409" stroke="#D9DEEA" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M604 425C616 415 632 417 641 429" stroke="#D9DEEA" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M584 189C605 174 645 174 667 189L681 273C682 284 674 294 663 294H588C577 294 569 284 570 273L584 189Z" fill="#FFFFFF"/>
+          <path d="M594 199C610 189 641 189 656 199L666 270H584L594 199Z" fill="#F7F9FD"/>
+          <path d="M605 214C613 209 620 210 627 216C635 209 643 209 651 214" stroke="#D8DDE8" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M598 234C606 228 615 229 622 235C630 228 639 228 647 235C654 229 661 229 668 235" stroke="#D8DDE8" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M576 188C560 193 545 205 537 220C531 232 537 245 550 248L571 252L585 220L576 188Z" fill="#FFFFFF"/>
+          <path d="M674 188C690 193 705 205 713 220C719 232 713 245 700 248L679 252L665 220L674 188Z" fill="#FFFFFF"/>
+          <path d="M553 225C538 233 524 244 512 257C503 266 500 279 510 286C519 292 531 289 540 281C553 269 564 254 573 239L553 225Z" fill="url(#cplSkinF)"/>
+          <path d="M699 225C714 233 728 244 740 257C749 266 752 279 742 286C733 292 721 289 712 281C699 269 688 254 679 239L699 225Z" fill="url(#cplSkinF)"/>
+          <circle cx="506" cy="282" r="15" fill="url(#cplSkinF)"/>
+          <circle cx="746" cy="282" r="15" fill="url(#cplSkinF)"/>
+          <rect x="614" y="157" width="24" height="24" rx="10" fill="url(#cplSkinF)"/>
+          <circle cx="626" cy="122" r="54" fill="url(#cplSkinF)"/>
+          <circle cx="576" cy="128" r="10" fill="url(#cplSkinF)"/>
+          <circle cx="676" cy="128" r="10" fill="url(#cplSkinF)"/>
+          <path d="M572 124C574 89 596 68 627 68C660 68 682 93 679 127C669 104 647 95 626 95C605 95 582 104 572 124Z" fill="#1A1716"/>
+          <path d="M667 108C682 121 687 144 681 164C675 183 661 197 644 202C662 188 665 168 660 149C656 133 658 119 667 108Z" fill="#1A1716"/>
+          <path d="M593 98C601 86 615 80 628 80C643 80 656 86 663 99" stroke="#2A2220" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M666 142C705 162 731 194 745 237C716 221 691 219 661 221L650 173L666 142Z" fill="#FFFFFF" opacity="0.68"/>
+          <path d="M676 152C709 178 726 203 734 229" stroke="#DDE2EE" strokeWidth="3" strokeLinecap="round" opacity="0.9"/>
+          <circle cx="673" cy="104" r="5"   fill="#FFFFFF"/>
+          <circle cx="679" cy="112" r="4"   fill="#FFFFFF"/>
+          <circle cx="686" cy="118" r="4"   fill="#FFFFFF"/>
+          <circle cx="691" cy="126" r="3.5" fill="#FFFFFF"/>
+          <circle cx="581" cy="142" r="4" fill="#E9EDF7"/>
+          <path d="M581 145L581 157" stroke="#E9EDF7" strokeWidth="2"/>
+          <circle cx="581" cy="160" r="5" fill="#FFFFFF"/>
+          <ellipse cx="607" cy="122" rx="8" ry="10" fill="#FFFFFF"/>
+          <ellipse cx="645" cy="122" rx="8" ry="10" fill="#FFFFFF"/>
+          <circle cx="607" cy="124" r="5"   fill="#161616"/>
+          <circle cx="645" cy="124" r="5"   fill="#161616"/>
+          <circle cx="609" cy="122" r="1.7" fill="#FFFFFF"/>
+          <circle cx="647" cy="122" r="1.7" fill="#FFFFFF"/>
+          <path d="M596 105C603 101 611 100 618 102" stroke="#231B18" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M634 102C641 100 649 101 656 105" stroke="#231B18" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M626 128C622 138 623 146 628 150" stroke="#875032" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M607 154C616 162 636 162 646 153" stroke="#74402A" strokeWidth="4" strokeLinecap="round"/>
+          <path d="M602 437C613 433 624 433 632 439C635 441 635 447 631 450C623 457 609 456 600 450C596 447 597 440 602 437Z" fill="#FDFDFE"/>
+          <path d="M652 437C663 433 674 433 682 439C685 441 685 447 681 450C673 457 659 456 650 450C646 447 647 440 652 437Z" fill="#FDFDFE"/>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* ── Wedding charm ornament (rings + flowers) ── */
+function WeddingCharm() {
+  return (
+    <svg width="130" height="130" viewBox="0 0 130 130" fill="none">
+      {/* soft bg glow */}
+      <circle cx="65" cy="65" r="56" fill={C.magPale} opacity="0.55" style={{ animation: "glowOrb 4s ease-in-out infinite" }} />
+      {/* dashed outer ring */}
+      <circle cx="65" cy="65" r="53" fill="none" stroke={C.goldBright} strokeWidth="1" strokeDasharray="3 5" opacity="0.4" />
+
+      {/* wedding rings — right ring drawn first (behind) */}
+      <circle cx="72" cy="70" r="21" fill="none" stroke={C.goldMed}  strokeWidth="6.5" />
+      {/* left ring */}
+      <circle cx="51" cy="70" r="21" fill="none" stroke={C.goldRich} strokeWidth="6.5" />
+      {/* overlap arc: right ring in front of left ring at intersection */}
+      <path d="M61.5 50.5 A21 21 0 0 1 61.5 89.5" fill="none" stroke={C.goldMed} strokeWidth="7" strokeLinecap="butt" />
+
+      {/* diamond on left ring top */}
+      <polygon points="51,47 55,52 51,57 47,52" fill={C.beige} opacity="0.9" />
+      <polygon points="51,47 55,52 51,57 47,52" fill="none" stroke={C.goldBright} strokeWidth="0.8" opacity="0.7" />
+
+      {/* heart floating above */}
+      <path d="M65 40 C65 36 69.5 31 74 31 C78.5 31 82 35 82 40 C82 47 74 54 65 58 C56 54 48 47 48 40 C48 35 51.5 31 56 31 C60.5 31 65 36 65 40Z" fill={C.magBright} opacity="0.88" />
+      <path d="M65 40 C65 36 69.5 31 74 31 C78.5 31 82 35 82 40 C82 47 74 54 65 58 C56 54 48 47 48 40 C48 35 51.5 31 56 31 C60.5 31 65 36 65 40Z" fill="none" stroke="white" strokeWidth="1.2" opacity="0.5" />
+
+      {/* E · L monogram below rings */}
+      <text x="61.5" y="103" fontSize="11" fill={C.magDeep} fontWeight="700" fontFamily="Georgia, serif" letterSpacing="2" opacity="0.85">E·L</text>
+
+      {/* flowers at four corners */}
+      <circle cx="19" cy="26" r="8"   fill={C.sageGreen}    opacity="0.72" />
+      <circle cx="19" cy="26" r="4.5" fill={C.blushMagenta} />
+      <circle cx="111" cy="26" r="8"  fill={C.lilac}        opacity="0.78" />
+      <circle cx="111" cy="26" r="4.5" fill={C.goldBright}  opacity="0.92" />
+      <circle cx="15"  cy="104" r="8" fill={C.seaBlue}      opacity="0.68" />
+      <circle cx="15"  cy="104" r="4.5" fill={C.oceanBlue} />
+      <circle cx="115" cy="104" r="8" fill={C.sageGreen}    opacity="0.72" />
+      <circle cx="115" cy="104" r="4.5" fill={C.blushMagenta} />
+
+      {/* sparkle 4-pointed stars */}
+      <path d="M36 15 L38 21 L44 23 L38 25 L36 31 L34 25 L28 23 L34 21Z" fill={C.goldBright} opacity="0.82" />
+      <path d="M94 17 L96 23 L102 25 L96 27 L94 33 L92 27 L86 25 L92 23Z" fill={C.goldBright} opacity="0.76" />
+
+      {/* tiny dots */}
+      <circle cx="65" cy="118" r="2.5" fill={C.goldBright} opacity="0.7" />
+      <circle cx="9"  cy="65"  r="1.8" fill={C.lilac}      opacity="0.65" />
+      <circle cx="121" cy="65" r="1.8" fill={C.seaBlue}    opacity="0.65" />
+    </svg>
+  );
+}
+
+/* ── Fixed corner roamers ── */
+function CornerRoamers() {
+  return (
+    <>
+      {/* Couple — bottom-left start, counter-clockwise orbit */}
+      <div style={{
+        position: "fixed", bottom: "0.75rem", left: "0.75rem",
+        zIndex: 20, pointerEvents: "none",
+        animation: "roamC1 32s ease-in-out infinite",
+      }}>
+        <div style={{
+          animation: "floatBride 7s ease-in-out infinite",
+          filter: "drop-shadow(0 10px 28px rgba(168,93,53,0.24)) drop-shadow(0 4px 12px rgba(156,0,82,0.14))",
+        }}>
+          <ChibiCouple />
+        </div>
+      </div>
+
+      {/* Charm — top-right start, clockwise orbit */}
+      <div style={{
+        position: "fixed", top: "0.75rem", right: "0.75rem",
+        zIndex: 20, pointerEvents: "none",
+        animation: "roamC2 24s ease-in-out infinite",
+        animationDelay: "-6s",
+      }}>
+        <div style={{
+          animation: "charmSpin 12s linear infinite",
+          filter: "drop-shadow(0 6px 18px rgba(200,150,12,0.30)) drop-shadow(0 3px 8px rgba(242,168,204,0.22))",
+        }}>
+          <WeddingCharm />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── Drifting star particles around the hero ── */
+function HeroStars() {
+  const stars = [
+    { x: "8%",  y: "20%", s: 10, delay: 0,   dur: 4.5 },
+    { x: "88%", y: "14%", s: 8,  delay: 1.2, dur: 5   },
+    { x: "14%", y: "78%", s: 9,  delay: 2.4, dur: 4   },
+    { x: "84%", y: "72%", s: 8,  delay: 0.8, dur: 5.5 },
+    { x: "50%", y: "6%",  s: 7,  delay: 1.8, dur: 4.2 },
+    { x: "22%", y: "52%", s: 6,  delay: 3,   dur: 4.8 },
+    { x: "76%", y: "48%", s: 7,  delay: 0.4, dur: 5.2 },
+    { x: "36%", y: "88%", s: 6,  delay: 2,   dur: 4.6 },
+    { x: "64%", y: "86%", s: 6,  delay: 3.5, dur: 4.3 },
+  ];
+  return (
+    <>
+      {stars.map((st, i) => (
+        <div key={i} style={{
+          position: "absolute", left: st.x, top: st.y,
+          pointerEvents: "none", zIndex: 0,
+          animation: `driftStar ${st.dur}s ease-out ${st.delay}s infinite`,
+          fontSize: st.s,
+          color: [C.goldBright, C.lilac, C.seaBlue, C.blushMagenta, C.sageGreen][i % 5],
+        }}>
+          ✦
+        </div>
+      ))}
+    </>
+  );
+}
+
+/* ── Couple avatars positioned in hero ── */
+function CoupleAvatars() {
+  return (
+    <>
+      {/* Wedding couple — centred, SVG handles its own float animations */}
+      <div style={{
+        position: "absolute", left: "50%", top: "50%",
+        transform: "translateX(-50%) translateY(-50%)",
+        zIndex: 0, pointerEvents: "none",
+        opacity: 0.92,
+      }}>
+        <ChibiCouple />
+      </div>
+    </>
   );
 }
 
@@ -1055,11 +1424,24 @@ export default function RSVPPage() {
       }}>
         <WeddingBgPattern />
         {!submitted && <WaveDecoration />}
+        {!submitted && <HeroStars />}
         {!submitted && <FloatingElements />}
+
+        {/* Radial glow behind heading */}
+        {!submitted && (
+          <div style={{
+            position: "absolute", top: "38%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 520, height: 340,
+            background: `radial-gradient(ellipse at center, ${C.blushMagenta}22 0%, ${C.lilac}14 40%, transparent 72%)`,
+            pointerEvents: "none", zIndex: 0,
+            animation: "glowOrb 7s ease-in-out infinite",
+          }} />
+        )}
 
         <div style={{
           position: "relative", zIndex: 1, maxWidth: 720,
-          animation: visible ? "fadeUp 1.1s ease-out" : "none",
+          animation: visible ? "heroEntrance 1.2s cubic-bezier(0.22,1,0.36,1) forwards" : "none",
           opacity: visible ? 1 : 0,
         }}>
           {submitted ? (
@@ -1132,39 +1514,51 @@ export default function RSVPPage() {
                 <div style={{ width: 50, height: 1, backgroundColor: C.goldRich, opacity: 0.5 }} />
               </div>
 
-              <p style={{ fontSize: 13, letterSpacing: "0.3em", textTransform: "uppercase", color: C.silver, fontWeight: 500, marginBottom: 20 }}>
+              <p style={{ fontSize: 16, letterSpacing: "0.28em", textTransform: "uppercase", color: C.silver, fontWeight: 600, marginBottom: 22 }}>
                 You Are Invited To Celebrate
               </p>
 
               <h1 style={{
-                fontFamily: font.heading, fontSize: "clamp(48px, 12vw, 82px)", fontWeight: 600, lineHeight: 1.05, marginBottom: 6,
+                fontFamily: font.heading, fontSize: "clamp(56px, 14vw, 96px)", fontWeight: 600, lineHeight: 1.05, marginBottom: 8,
                 background: `linear-gradient(135deg, ${C.magDeep}, ${C.goldRich}, ${C.magMed}, ${C.goldMed})`,
                 backgroundSize: "300% 300%", animation: "gradientPulse 8s ease infinite",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                filter: "drop-shadow(0 2px 16px rgba(156,0,82,0.12))",
+                filter: "drop-shadow(0 2px 20px rgba(156,0,82,0.14))",
               }}>
                 Eyram
-                <span style={{ fontStyle: "italic", fontWeight: 300, fontSize: "0.5em", margin: "0 6px", WebkitTextFillColor: C.goldMed, color: C.goldMed }}>&amp;</span>
+                <span style={{ fontStyle: "italic", fontWeight: 300, fontSize: "0.52em", margin: "0 8px", WebkitTextFillColor: C.goldMed, color: C.goldMed }}>&amp;</span>
                 Loretta
               </h1>
 
-              <p style={{ fontFamily: font.heading, fontSize: "clamp(18px, 4vw, 24px)", fontStyle: "italic", color: C.magMed, fontWeight: 400, marginBottom: 28 }}>
+              <p style={{ fontFamily: font.heading, fontSize: "clamp(20px, 4.5vw, 28px)", fontStyle: "italic", color: C.magMed, fontWeight: 400, marginBottom: 32 }}>
                 are getting married!
               </p>
 
               <div style={{
-                fontSize: 17, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase",
+                fontSize: "clamp(16px, 3vw, 20px)", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase",
                 background: `linear-gradient(90deg, ${C.magDeep}, ${C.goldRich}, ${C.magBright}, ${C.goldBright}, ${C.magDeep})`,
                 backgroundSize: "300% auto", animation: "shimmer 4s linear infinite",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                marginBottom: 10,
+                marginBottom: 12,
               }}>
                 Saturday, 2nd May 2026
               </div>
 
-              <p style={{ fontSize: 18, color: C.silver, marginBottom: 28 }}>🏖️ Elmina Beach Resort</p>
+              <p style={{ fontSize: "clamp(17px, 3vw, 21px)", marginBottom: 10, fontWeight: 500 }}>
+                <a
+                  href="https://maps.app.goo.gl/hADnwHFjPYPFJP6d6"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: C.silver, textDecoration: "none", borderBottom: `1px dashed ${C.goldRich}`, paddingBottom: 1, transition: "color 0.2s, border-color 0.2s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = C.magDeep; (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = C.magDeep; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = C.silver; (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = C.goldRich; }}
+                >
+                  🏖️ Elmina Beach Resort ↗
+                </a>
+              </p>
+              <p style={{ fontSize: "clamp(16px, 2.8vw, 20px)", color: C.silver, marginBottom: 32, opacity: 0.88, fontWeight: 500 }}>⏰ Ceremony begins at 10:00 AM GMT</p>
 
-              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 32, color: C.goldRich, fontSize: 12, opacity: 0.6 }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: 18, marginBottom: 36, color: C.goldRich, fontSize: 16, opacity: 0.65 }}>
                 <span>✦</span><span>✦</span><span>✦</span>
               </div>
 
@@ -1379,6 +1773,9 @@ export default function RSVPPage() {
       )}
 
       {!submitted && <KenteStrip id="kenteWeaveBottom" />}
+
+      {/* Always-visible corner roamers */}
+      <CornerRoamers />
     </div>
   );
 }
