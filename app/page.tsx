@@ -716,7 +716,7 @@ export default function RSVPPage() {
                 filter: "drop-shadow(0 2px 16px rgba(156,0,82,0.12))",
               }}>
                 Eyram
-                <span style={{ fontStyle: "italic", fontWeight: 300, fontSize: "0.5em", margin: "0 6px", opacity: 0.85 }}>&amp;</span>
+                <span style={{ fontStyle: "italic", fontWeight: 300, fontSize: "0.5em", margin: "0 6px", WebkitTextFillColor: C.goldMed, color: C.goldMed }}>&amp;</span>
                 Loretta
               </h1>
 

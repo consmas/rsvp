@@ -1,7 +1,11 @@
 import Database from "better-sqlite3";
 import path from "path";
 
-const db = new Database(path.join(process.cwd(), "rsvp.db"));
+const dbPath = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(process.cwd(), "rsvp.db");
+
+const db = new Database(dbPath);
 
 db.pragma("journal_mode = WAL");
 

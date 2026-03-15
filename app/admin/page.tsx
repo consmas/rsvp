@@ -214,7 +214,7 @@ function AccommodationForm({
             style={inputStyle}
             value={data.hotel_name}
             onChange={(e) => set("hotel_name")(e.target.value)}
-            placeholder="e.g. Kempinski Hotel Gold Coast City"
+            placeholder="e.g. Elmina Beach Resort"
           />
         </div>
 
@@ -756,7 +756,7 @@ export default function AdminPage() {
               </span>
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>
-              Saturday, 2nd May 2026 · Kempinski Hotel Gold Coast City, Accra
+              Saturday, 2nd May 2026 · Elmina Beach Resort, Accra
             </div>
           </div>
 
