@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/src/lib/db";
+import db, { ensureInit } from "@/src/lib/db";
 
 /* DELETE /api/rsvp/[id] — remove a guest RSVP (admin use) */
 export async function DELETE(
@@ -7,10 +7,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureInit();
     const { id } = await params;
-    const result = db.prepare("DELETE FROM guests WHERE id = ?").run(id);
+    const result = await db.execute({ sql: "DELETE FROM guests WHERE id = ?", args: [id] });
 
-    if (result.changes === 0) {
+    if (result.rowsAffected === 0) {
       return NextResponse.json({ success: false, error: "Guest not found." }, { status: 404 });
     }
 
