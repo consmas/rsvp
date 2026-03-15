@@ -159,9 +159,15 @@ export async function POST(request: NextRequest) {
       try {
         await ensureInit();
         await db.execute({
-          sql: `INSERT OR IGNORE INTO donations (reference, amount, currency, donor_name, donor_phone, donor_network, status)
-                VALUES (?, ?, 'GHS', ?, ?, ?, 'pending')`,
-          args: [reference, amount, name || null, momoPhone || null, momoNetwork || null],
+          sql: `INSERT INTO donations (reference, amount, currency, donor_name, donor_phone, donor_network, status, flutterwave_charge_id)
+                VALUES (?, ?, 'GHS', ?, ?, ?, 'pending', ?)
+                ON CONFLICT(reference) DO UPDATE SET
+                  amount = excluded.amount,
+                  donor_name = excluded.donor_name,
+                  donor_phone = excluded.donor_phone,
+                  donor_network = excluded.donor_network,
+                  flutterwave_charge_id = excluded.flutterwave_charge_id`,
+          args: [reference, amount, name || null, momoPhone || null, momoNetwork || null, data?.data?.id ?? null],
         });
       } catch (e) {
         console.error("Failed to save donation record:", e);

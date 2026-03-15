@@ -560,13 +560,16 @@ function DonationModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingMsg, setPendingMsg] = useState("");
+  const [pendingReference, setPendingReference] = useState("");
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const verifyInFlight = useRef(false);
 
   const finalAmount = custom ? Number(custom) : amount;
 
   async function handlePay() {
     if (!finalAmount || finalAmount < 1) { setError("Please choose or enter a valid amount."); return; }
     if (method === "momo" && !momoPhone.trim()) { setError("Please enter your MoMo phone number."); return; }
-    setError(""); setLoading(true);
+    setError(""); setPendingMsg(""); setPendingReference(""); setLoading(true);
     try {
       const res = await fetch("/api/payment/initiate", {
         method: "POST",
@@ -585,6 +588,7 @@ function DonationModal({ onClose }: { onClose: () => void }) {
         window.location.href = data.url;
       } else if (data.pending) {
         setPendingMsg(data.message ?? "Please authorise the payment on your phone.");
+        setPendingReference(data.reference ?? "");
         setLoading(false);
       } else {
         setError(data.error ?? "Could not start payment. Please try a manual option below.");
@@ -595,6 +599,46 @@ function DonationModal({ onClose }: { onClose: () => void }) {
       setLoading(false);
     }
   }
+
+  async function checkPendingPayment(silent = false) {
+    if (!pendingReference || verifyInFlight.current) return;
+    verifyInFlight.current = true;
+    if (!silent) setCheckingStatus(true);
+    if (!silent) setError("");
+    try {
+      const res = await fetch(`/api/payment/verify?reference=${encodeURIComponent(pendingReference)}`);
+      const data = await res.json();
+      if (data.status === "confirmed") {
+        window.location.href = `/payment/success?status=successful&tx_ref=${encodeURIComponent(pendingReference)}`;
+        return;
+      }
+      if (data.status === "failed") {
+        setError("Payment was not completed. Please try again.");
+        setPendingMsg("");
+        setPendingReference("");
+        return;
+      }
+      if (!silent) {
+        setPendingMsg("Still waiting for approval on your phone. Please approve the prompt, then check again.");
+      }
+    } catch {
+      if (!silent) setError("Could not verify payment right now. Please try again.");
+    } finally {
+      verifyInFlight.current = false;
+      if (!silent) setCheckingStatus(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!pendingReference) return;
+    let attempts = 0;
+    const id = setInterval(() => {
+      attempts += 1;
+      void checkPendingPayment(true);
+      if (attempts >= 24) clearInterval(id); // about 2 minutes at 5s interval
+    }, 5000);
+    return () => clearInterval(id);
+  }, [pendingReference]);
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px", fontSize: 15, borderRadius: 10,
@@ -628,6 +672,16 @@ function DonationModal({ onClose }: { onClose: () => void }) {
               <div style={{ background: "#FFF5FA", borderRadius: 12, padding: "14px 18px", marginBottom: 28, fontSize: 14, color: C.goldRich, fontWeight: 600 }}>
                 GHS {finalAmount?.toLocaleString()} · {momoNetwork} · {momoPhone}
               </div>
+              <button onClick={() => void checkPendingPayment(false)} disabled={checkingStatus || !pendingReference}
+                style={{
+                  width: "100%", padding: "14px", fontSize: 15, fontWeight: 700, fontFamily: font.body,
+                  color: "#fff", background: checkingStatus ? "#B89AA9" : `linear-gradient(135deg, ${C.goldRich}, ${C.goldMed})`,
+                  border: "none", borderRadius: 12, cursor: checkingStatus ? "not-allowed" : "pointer",
+                  boxShadow: checkingStatus ? "none" : `0 4px 20px rgba(200,150,12,0.28)`,
+                  marginBottom: 10,
+                }}>
+                {checkingStatus ? "Checking..." : "I Have Approved, Check Status"}
+              </button>
               <button onClick={onClose}
                 style={{
                   width: "100%", padding: "14px", fontSize: 15, fontWeight: 700, fontFamily: font.body,

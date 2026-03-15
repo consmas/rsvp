@@ -58,6 +58,9 @@ export async function ensureInit(): Promise<void> {
     try {
       await db.execute(`ALTER TABLE guests ADD COLUMN accommodation_id INTEGER`);
     } catch { /* column already exists — no-op */ }
+    try {
+      await db.execute(`ALTER TABLE donations ADD COLUMN flutterwave_charge_id TEXT`);
+    } catch { /* column already exists — no-op */ }
   })();
   return _init;
 }

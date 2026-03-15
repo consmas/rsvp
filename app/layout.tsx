@@ -23,7 +23,8 @@ export const metadata: Metadata = {
   description:
     "Kindly respond to celebrate the marriage of Eyram & Loretta on Saturday, 2nd May 2026 at Elmina Beach Resort.",
   icons: {
-    icon: "/icon.svg",
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
 };

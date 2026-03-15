@@ -277,7 +277,7 @@ function DonationsLineChart({ donations }: { donations: Donation[] }) {
   const chartH = H - padT - padB;
 
   // Build daily totals
-  const confirmed = donations.filter((d) => d.status !== "failed");
+  const confirmed = donations.filter((d) => d.status === "confirmed");
   if (confirmed.length === 0) {
     return (
       <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
@@ -1177,10 +1177,10 @@ export default function AdminPage() {
   /* ── Derived stats ── */
   const attending = guests.filter((g) => g.attending === "yes");
   const declining = guests.filter((g) => g.attending === "no");
-  const totalGuests = attending.reduce((s, g) => s + g.guest_count, 0);
-  const totalDonations = donations
-    .filter((d) => d.status !== "failed")
-    .reduce((s, d) => s + d.amount, 0);
+  const totalAttendingPeople = attending.reduce((s, g) => s + (Number(g.guest_count) || 0), 0);
+  const totalGuests = guests.length;
+  const confirmedDonations = donations.filter((d) => d.status === "confirmed");
+  const totalDonations = confirmedDonations.reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
   /* ── Filtered guest list ── */
   const filteredGuests = guests.filter((g) => {
@@ -1613,12 +1613,13 @@ export default function AdminPage() {
                   }}
                 >
                   <StatCard label="Total RSVPs"      value={guests.length}     accent={C.gold} />
-                  <StatCard label="Attending"         value={attending.length}  sub={`${totalGuests} people total`} accent="#059669" />
+                  <StatCard label="Attending"         value={attending.length}  sub={`${totalAttendingPeople} people total`} accent="#059669" />
                   <StatCard label="Declining"         value={declining.length}  accent="#DC2626" />
                   <StatCard label="Total Guests"      value={totalGuests}       accent={C.magenta} />
                   <StatCard
                     label="Total Donations"
                     value={formatPrice(totalDonations, "GHS")}
+                    sub="confirmed only"
                     accent={C.goldMed}
                   />
                 </div>
@@ -1934,7 +1935,8 @@ export default function AdminPage() {
                 >
                   <StatCard
                     label="Total Donations"
-                    value={donations.length}
+                    value={confirmedDonations.length}
+                    sub="confirmed only"
                     accent={C.goldMed}
                   />
                   <StatCard
@@ -1950,7 +1952,7 @@ export default function AdminPage() {
                   <StatCard
                     label="Total Amount (GHS)"
                     value={formatPrice(totalDonations, "GHS")}
-                    sub="confirmed + pending"
+                    sub="confirmed only"
                     accent={C.magenta}
                   />
                 </div>
