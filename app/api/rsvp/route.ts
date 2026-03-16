@@ -11,6 +11,10 @@ export async function POST(request: NextRequest) {
       arriving_early, needs_accommodation, accommodation_id,
       staying_for_dinner, dietary_notes, message,
     } = body;
+    const normalizedAccommodationId =
+      accommodation_id == null || accommodation_id === ""
+        ? null
+        : Number(accommodation_id);
 
     if (!full_name?.trim()) {
       return NextResponse.json({ success: false, error: "Full name is required." }, { status: 400 });
@@ -19,8 +23,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Attending must be 'yes' or 'no'." }, { status: 400 });
     }
 
-    if (accommodation_id != null) {
-      const acc = await db.execute({ sql: "SELECT id FROM accommodations WHERE id = ?", args: [accommodation_id] });
+    if (normalizedAccommodationId != null) {
+      if (!Number.isFinite(normalizedAccommodationId)) {
+        return NextResponse.json({ success: false, error: "Selected accommodation is invalid." }, { status: 400 });
+      }
+      const acc = await db.execute({ sql: "SELECT id FROM accommodations WHERE id = ?", args: [normalizedAccommodationId] });
       if (acc.rows.length === 0) {
         return NextResponse.json({ success: false, error: "Selected accommodation no longer exists." }, { status: 400 });
       }
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
         attending === "yes" ? (guest_count ?? 1) : 1,
         arriving_early ?? null,
         needs_accommodation ?? null,
-        accommodation_id ?? null,
+        normalizedAccommodationId,
         staying_for_dinner ?? null,
         dietary_notes || null,
         message || null,

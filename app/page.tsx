@@ -16,6 +16,16 @@ interface Accommodation {
   available: number;
 }
 
+function normalizeAccommodation(raw: any): Accommodation {
+  return {
+    ...raw,
+    id: Number(raw?.id),
+    price_per_night: Number(raw?.price_per_night),
+    max_guests: Number(raw?.max_guests),
+    available: Number(raw?.available),
+  };
+}
+
 interface FormState {
   fullName: string;
   email: string;
@@ -1341,7 +1351,11 @@ export default function RSVPPage() {
   useEffect(() => {
     fetch("/api/accommodations")
       .then((r) => r.json())
-      .then((d) => { if (d.success) setAccommodations(d.accommodations); })
+      .then((d) => {
+        if (d.success) {
+          setAccommodations((d.accommodations ?? []).map((a: any) => normalizeAccommodation(a)));
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -1350,7 +1364,8 @@ export default function RSVPPage() {
   }, []);
 
   function selectAccommodation(id: number) {
-    setForm((f) => ({ ...f, accommodationId: id, needsAccommodation: "yes" }));
+    const normalizedId = Number(id);
+    setForm((f) => ({ ...f, accommodationId: Number.isFinite(normalizedId) ? normalizedId : null, needsAccommodation: "yes" }));
   }
 
   const progressStep = form.attending === "" ? 0
@@ -1376,7 +1391,7 @@ export default function RSVPPage() {
           guest_count: form.guestCount,
           arriving_early: form.arrivingEarly || null,
           needs_accommodation: form.needsAccommodation || null,
-          accommodation_id: form.accommodationId,
+          accommodation_id: form.accommodationId != null ? Number(form.accommodationId) : null,
           staying_for_dinner: form.stayingForDinner || null,
           dietary_notes: form.dietaryNotes || null,
           message: form.message || null,
@@ -1400,7 +1415,7 @@ export default function RSVPPage() {
     }
   }
 
-  const selectedAcc = accommodations.find((a) => a.id === form.accommodationId) ?? null;
+  const selectedAcc = accommodations.find((a) => Number(a.id) === Number(form.accommodationId)) ?? null;
 
   function confirmationAccommodationLabel() {
     if (selectedAcc) return `${selectedAcc.room_type} — ${selectedAcc.hotel_name} (${formatPrice(selectedAcc.price_per_night, selectedAcc.currency)}/night)`;
@@ -1668,7 +1683,7 @@ export default function RSVPPage() {
                                 <AccommodationCard
                                   key={acc.id}
                                   accommodation={acc}
-                                  selected={form.accommodationId === acc.id}
+                                  selected={Number(form.accommodationId) === Number(acc.id)}
                                   onClick={() => selectAccommodation(acc.id)}
                                 />
                               ))}
