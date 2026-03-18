@@ -1481,7 +1481,7 @@ export default function RSVPPage() {
                     form.attending === "yes" ? ["Guests", String(form.guestCount)] : null,
                     form.attending === "yes" ? ["Arrival", form.arrivingEarly === "yes" ? "Friday, 1st May" : "Saturday, 2nd May"] : null,
                     form.attending === "yes" && form.arrivingEarly === "yes" ? ["Accommodation", confirmationAccommodationLabel()] : null,
-                    form.attending === "yes" && form.stayingForDinner ? ["Reception Lunch", form.stayingForDinner === "yes" ? "Staying for lunch" : "Meal packed to take home"] : null,
+                    form.attending === "yes" && form.stayingForDinner ? ["Staying for Reception", form.stayingForDinner === "yes" ? "Yes" : "No"] : null,
                     form.attending === "yes" && form.dietaryNotes ? ["Dietary Notes", form.dietaryNotes] : null,
                     form.message ? ["Message", form.message] : null,
                   ] as ([string, string] | null)[]).filter((row): row is [string, string] => row !== null).map(([label, val], i) => (
@@ -1707,11 +1707,11 @@ export default function RSVPPage() {
 
                   <SectionDivider />
 
-                  {/* Group 4: Lunch */}
-                  <FormField label="Will you stay for the reception lunch?">
+                  {/* Group 4: Reception */}
+                  <FormField label="Staying for Reception">
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      <RadioCard label="Yes, I'll stay for lunch" sublabel="I'd love to dine and celebrate with everyone" selected={form.stayingForDinner === "yes"} onClick={() => up("stayingForDinner", "yes")} />
-                      <RadioCard label="I'd love my meal packed to take home" sublabel="I'll be heading off after the ceremony — a takeaway would be lovely" selected={form.stayingForDinner === "no"} onClick={() => up("stayingForDinner", "no")} />
+                      <RadioCard label="Yes" sublabel="I will stay for the reception" selected={form.stayingForDinner === "yes"} onClick={() => up("stayingForDinner", "yes")} />
+                      <RadioCard label="No" sublabel="I won't stay for the reception" selected={form.stayingForDinner === "no"} onClick={() => up("stayingForDinner", "no")} />
                     </div>
                   </FormField>
 

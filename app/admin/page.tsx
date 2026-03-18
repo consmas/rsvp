@@ -732,14 +732,14 @@ function GuestFormModal({
                 </select>
               </div>
 
-              {/* Lunch + dietary */}
+              {/* Reception + dietary */}
               <div style={rowStyle}>
                 <div>
-                  <label style={labelStyle}>Reception Lunch</label>
+                  <label style={labelStyle}>Staying for Reception</label>
                   <select style={{ ...inputStyle, cursor: "pointer" }} value={data.staying_for_dinner} onChange={(e) => set("staying_for_dinner")(e.target.value)}>
                     <option value="">— Not specified —</option>
-                    <option value="yes">Staying for lunch</option>
-                    <option value="no">Meal to take away</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
                   </select>
                 </div>
                 <div>
@@ -1939,7 +1939,7 @@ export default function AdminPage() {
                             "Party",
                             "Arrival",
                             "Accommodation",
-                            "Dinner",
+                            "Reception",
                             "Dietary",
                             "Message",
                             "Submitted",
