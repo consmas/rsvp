@@ -883,6 +883,7 @@ const EVENT_PALETTE = [
   { name: "Sage Green", sub: "Soft Botanical",  hex: C.sageGreen,    },
   { name: "Lilac",      sub: "Soft Lavender",   hex: C.lilac,        },
   { name: "Magenta",    sub: "Blush Rose",      hex: C.blushMagenta, },
+  { name: "White",      sub: "Classic Pearl",   hex: "#FFFFFF",      },
 ];
 
 function EventColors() {
@@ -917,7 +918,7 @@ function EventColors() {
               Pastel Elegance
             </p>
             <p style={{ fontSize: 14, color: C.silver, fontStyle: "italic", lineHeight: 1.6 }}>
-              We'd love for you to join us dressed in any of these soft, beautiful shades
+              We'd love for you to join us dressed in any of these soft, beautiful shades, or in white
             </p>
           </div>
 
@@ -932,6 +933,7 @@ function EventColors() {
                 display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "flex-end",
                 paddingBottom: 10,
+                boxShadow: c.name === "White" ? "inset 0 0 0 1px #E8DDE4" : undefined,
               }}>
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
@@ -962,6 +964,7 @@ function EventColors() {
                   width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                   backgroundColor: c.hex,
                   boxShadow: "inset 0 1px 3px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.1)",
+                  border: c.name === "White" ? "1px solid #E8DDE4" : "none",
                 }} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, lineHeight: 1.2 }}>
